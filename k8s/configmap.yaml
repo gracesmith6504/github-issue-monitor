@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: issue-monitor-config
+  namespace: issue-monitor
+data:
+  WATCH_REPOS: "NVIDIA/OpenShell"
+  NOTIFY_REPO: "gracesmith6504/github-issue-monitor"
+  POLL_INTERVAL: "30"
+  LLM_MODEL: "gpt-4o"
