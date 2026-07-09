@@ -37,6 +37,11 @@ def main():
                     logger.warning(f"Skipping {issue['repo']} #{issue['number']} — analysis failed")
                     continue
 
+                verdict = analysis.get("verdict", "")
+                if verdict == "NOT YET":
+                    logger.info(f"[{issue['repo']} #{issue['number']}] Verdict: NOT YET — skipping notification")
+                    continue
+
                 notify(issue, analysis, config["notify_repo"],
                        config["app_id"], config["private_key"], config["installation_id"])
 

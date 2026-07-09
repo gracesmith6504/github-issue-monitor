@@ -35,7 +35,7 @@ def _already_notified(issue, notify_repo, headers):
     search_term = f"[{issue['repo_name']} #{issue['number']}]"
     url = "https://api.github.com/search/issues"
     params = {
-        "q": f'repo:{notify_repo} "{search_term}" in:title',
+        "q": f'repo:{notify_repo} "{search_term}" in:title is:open',
         "per_page": 1,
     }
 
