@@ -15,6 +15,10 @@ You only get emailed on GO FOR IT and STRETCH. Everything else is silently skipp
 
 Works on repos you don't own. No webhooks needed. Completely free.
 
+**Two ways to run it:**
+- **On your laptop** — run the command, leave the terminal open. It stops when you close the terminal or shut your laptop. Good for trying it out.
+- **On OpenShift/Kubernetes** — runs 24/7 as a tiny pod. Catches issues at 3am while you sleep. Setup instructions at the end.
+
 ---
 
 ## Setup Guide
