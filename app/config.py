@@ -15,26 +15,7 @@ def load_config():
 
     notify_repo = os.environ.get("NOTIFY_REPO")
     if not notify_repo:
-        print("ERROR: NOTIFY_REPO environment variable is required (e.g. youruser/github-issue-monitor)")
-        sys.exit(1)
-
-    app_id = os.environ.get("GITHUB_APP_ID")
-    if not app_id:
-        print("ERROR: GITHUB_APP_ID environment variable is required")
-        sys.exit(1)
-
-    private_key_path = os.environ.get("GITHUB_APP_PRIVATE_KEY_PATH")
-    private_key = os.environ.get("GITHUB_APP_PRIVATE_KEY")
-    if private_key_path:
-        with open(private_key_path) as f:
-            private_key = f.read()
-    if not private_key:
-        print("ERROR: GITHUB_APP_PRIVATE_KEY or GITHUB_APP_PRIVATE_KEY_PATH environment variable is required")
-        sys.exit(1)
-
-    installation_id = os.environ.get("GITHUB_APP_INSTALLATION_ID")
-    if not installation_id:
-        print("ERROR: GITHUB_APP_INSTALLATION_ID environment variable is required")
+        print("ERROR: NOTIFY_REPO environment variable is required (e.g. youruser/my-issue-alerts)")
         sys.exit(1)
 
     watch_repos = [r.strip() for r in watch_repos_raw.split(",") if r.strip()]
@@ -45,13 +26,32 @@ def load_config():
     poll_interval = int(os.environ.get("POLL_INTERVAL", "30"))
     llm_model = os.environ.get("LLM_MODEL", "gpt-4o")
 
-    return {
+    config = {
         "token": token,
         "watch_repos": watch_repos,
         "notify_repo": notify_repo,
         "poll_interval": poll_interval,
         "llm_model": llm_model,
-        "app_id": app_id,
-        "private_key": private_key,
-        "installation_id": installation_id,
     }
+
+    app_id = os.environ.get("GITHUB_APP_ID")
+    if app_id:
+        private_key_path = os.environ.get("GITHUB_APP_PRIVATE_KEY_PATH")
+        private_key = os.environ.get("GITHUB_APP_PRIVATE_KEY")
+        if private_key_path:
+            with open(private_key_path) as f:
+                private_key = f.read()
+        if not private_key:
+            print("ERROR: GITHUB_APP_PRIVATE_KEY or GITHUB_APP_PRIVATE_KEY_PATH required when GITHUB_APP_ID is set")
+            sys.exit(1)
+
+        installation_id = os.environ.get("GITHUB_APP_INSTALLATION_ID")
+        if not installation_id:
+            print("ERROR: GITHUB_APP_INSTALLATION_ID required when GITHUB_APP_ID is set")
+            sys.exit(1)
+
+        config["app_id"] = app_id
+        config["private_key"] = private_key
+        config["installation_id"] = installation_id
+
+    return config

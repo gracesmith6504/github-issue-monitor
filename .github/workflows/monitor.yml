@@ -1,0 +1,28 @@
+name: Issue Monitor
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monitor (single pass)
+        env:
+          GITHUB_TOKEN: ${{ secrets.MONITOR_TOKEN }}
+          WATCH_REPOS: ${{ vars.WATCH_REPOS }}
+          NOTIFY_REPO: ${{ github.repository }}
+          LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-4o' }}
+          RUN_ONCE: "true"
+        run: python -m app.main

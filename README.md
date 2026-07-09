@@ -4,7 +4,7 @@
 
 **The solution:** A bot that watches GitHub repos and emails you the moment a new issue appears that matches your skill level.
 
-It polls every 30 seconds. An LLM reads the actual issue content — not labels, because people don't label things — and gives you:
+An LLM reads the actual issue content — not labels, because people don't label things — and gives you:
 - A plain English summary of the issue
 - What the fix involves
 - What skills you'd need
@@ -15,19 +15,54 @@ You only get emailed on GO FOR IT and STRETCH. Everything else is silently skipp
 
 Works on repos you don't own. No webhooks needed. Completely free.
 
-**Two ways to run it:**
-- **On your laptop** — run the command, leave the terminal open. It stops when you close the terminal or shut your laptop. Good for trying it out.
-- **On OpenShift/Kubernetes** — runs 24/7 as a tiny pod. Catches issues at 3am while you sleep. Setup instructions at the end.
+---
+
+## Quick Setup (GitHub Actions) — 2 minutes
+
+No server, no terminal, no installs. GitHub runs it for you every 5 minutes.
+
+### 1. Fork this repo
+
+Click the **Fork** button at the top of this page.
+
+### 2. Add your GitHub token
+
+Your fork needs a token to call the LLM and create notification issues.
+
+1. Create a token: [github.com/settings/tokens](https://github.com/settings/tokens) → **Generate new token (classic)** → tick **`repo`** → **Generate token** → copy it
+2. In your fork, go to **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+3. Name: `MONITOR_TOKEN`, Value: paste your token
+
+### 3. Set which repos to watch
+
+1. In your fork, go to **Settings** → **Secrets and variables** → **Actions** → **Variables** tab → **New repository variable**
+2. Name: `WATCH_REPOS`, Value: `NVIDIA/OpenShell` (or any repos you want, comma-separated)
+
+### 4. Enable the workflow
+
+1. In your fork, go to the **Actions** tab
+2. Click **I understand my workflows, go ahead and enable them**
+3. Click **Issue Monitor** in the left sidebar
+4. Click **Enable workflow**
+
+### 5. Watch your fork for notifications
+
+1. Go to your fork's main page
+2. Click **Watch** (top right) → **Custom** → tick **Issues** → **Apply**
+
+That's it. Every 5 minutes, GitHub checks your watched repos for new unassigned issues, analyzes them with an LLM, and creates a notification issue in your fork if one is suitable. You get an email because `github-actions[bot]` creates the issue, not you.
+
+You can also click **Run workflow** in the Actions tab to test it immediately.
 
 ---
 
-## Setup Guide
+## Full Setup (30-second polling) — 10 minutes
 
-This takes about 10 minutes. You'll need a GitHub account — that's it.
+For faster detection, run the Python app yourself. Polls every 30 seconds instead of every 5 minutes. Can be deployed on OpenShift/Kubernetes to run 24/7.
+
+This requires a **GitHub App** so the bot has its own identity (otherwise GitHub won't email you about issues you created yourself).
 
 ### Step 1: Clone this repo
-
-This is the tool itself. Open your terminal and run:
 
 ```bash
 git clone https://github.com/gracesmith6504/github-issue-monitor.git
@@ -39,143 +74,67 @@ If `pip` doesn't work, try `pip3`.
 
 ### Step 2: Create a notification repo
 
-This is a separate repo where the bot posts notifications. You want this separate so the tool's Issues tab stays clean.
+A separate private repo where the bot posts notifications. Keeps the tool's Issues tab clean.
 
 1. Go to [github.com/new](https://github.com/new)
 2. Name it `my-issue-alerts` (or whatever you like)
-3. Set it to **Private** (only you can see your notifications)
+3. Set it to **Private**
 4. Click **Create repository**
 
-<!-- Screenshot: docs/images/create-repo.png -->
-
-Now turn on email notifications for this repo:
+Turn on email notifications:
 1. Go to your new repo on GitHub
-2. Click the **Watch** button (top right)
-3. Select **Custom**
-4. Tick **Issues** only
-5. Click **Apply**
-
-<!-- Screenshot: docs/images/watch-settings.png -->
+2. Click **Watch** (top right) → **Custom** → tick **Issues** → **Apply**
 
 ### Step 3: Create a GitHub token
 
-This is how the bot logs into GitHub to read issues and call the LLM.
-
 1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
 2. Click **Generate new token** → **Generate new token (classic)**
-3. Name it `issue-monitor`
-4. Tick the **`repo`** scope (the top-level checkbox)
-5. Click **Generate token**
-6. **Copy the token now** — you can't see it again after you leave this page
-
-<!-- Screenshot: docs/images/create-token.png -->
+3. Name it `issue-monitor`, tick **`repo`**, click **Generate token**
+4. **Copy the token now** — you can't see it again
 
 ### Step 4: Create a GitHub App
 
-This is the clever bit. The bot needs its own identity so that when it creates a notification, GitHub knows *you* didn't create it — and sends you an email.
+The bot needs its own identity so GitHub emails you when it creates a notification.
 
 1. Go to [github.com/settings/apps/new](https://github.com/settings/apps/new)
-2. Fill in these fields:
-
-| Field | What to enter |
-|---|---|
-| **GitHub App name** | `issue-monitor-bot-YOURNAME` (must be unique on all of GitHub, so add your username) |
-| **Homepage URL** | `https://github.com/gracesmith6504/github-issue-monitor` |
-
-3. Scroll down to **Webhook** — **uncheck** "Active" (we don't use webhooks)
-4. Scroll down to **Permissions** → **Repository permissions** → set **Issues** to **Read and write**
-5. Leave everything else as default
+2. **Name:** `issue-monitor-bot-YOURNAME` (must be globally unique)
+3. **Homepage URL:** `https://github.com/gracesmith6504/github-issue-monitor`
+4. **Webhook:** uncheck "Active"
+5. **Permissions** → **Repository permissions** → **Issues:** Read and write
 6. Click **Create GitHub App**
-
-<!-- Screenshot: docs/images/create-app.png -->
-
-You'll land on the app's settings page. You need two things from here:
-
-**Get the App ID:**
-- It's shown near the top of the page, labelled "App ID"
-- Write it down
-
-**Get the private key:**
-- Scroll to the bottom of the page
-- Click **Generate a private key**
-- A `.pem` file will download — save it somewhere safe (not inside this repo)
-
-<!-- Screenshot: docs/images/app-id-and-key.png -->
+7. Note the **App ID** at the top of the page
+8. Scroll down → **Generate a private key** (downloads a `.pem` file)
 
 ### Step 5: Install the app on your notification repo
 
-This gives the bot permission to create issues in your notification repo.
-
-1. In the left sidebar of your app's settings, click **Install App**
-2. Click **Install** next to your account
-3. Select **Only select repositories**
-4. Pick your notification repo (`my-issue-alerts` or whatever you named it in Step 2)
-5. Click **Install**
-
-<!-- Screenshot: docs/images/install-app.png -->
-
-**Get the Installation ID:**
-- After installing, look at the URL in your browser
-- It looks like `https://github.com/settings/installations/12345678`
-- The number at the end is your Installation ID — write it down
+1. In your app's settings → **Install App** → **Install** on your account
+2. Select **Only select repositories** → pick your notification repo
+3. Click **Install**
+4. Note the **Installation ID** from the URL: `https://github.com/settings/installations/XXXXX`
 
 ### Step 6: Run it
 
-Put it all together. In your terminal:
-
 ```bash
-cd github-issue-monitor
-
-export GITHUB_TOKEN="ghp_paste_your_token_here"
+export GITHUB_TOKEN="ghp_your_token"
 export WATCH_REPOS="NVIDIA/OpenShell"
 export NOTIFY_REPO="your-username/my-issue-alerts"
 export GITHUB_APP_ID="your_app_id"
 export GITHUB_APP_INSTALLATION_ID="your_installation_id"
-export GITHUB_APP_PRIVATE_KEY_PATH="/path/to/your-downloaded-file.pem"
+export GITHUB_APP_PRIVATE_KEY_PATH="/path/to/your-key.pem"
 
 python -m app.main
 ```
 
-Replace:
-- `ghp_paste_your_token_here` with your token from Step 3
-- `NVIDIA/OpenShell` with whatever repo you want to watch (or keep it — add more with commas: `NVIDIA/OpenShell,kubernetes/kubernetes`)
-- `your-username/my-issue-alerts` with your notification repo from Step 2
-- `your_app_id` with the App ID from Step 4
-- `your_installation_id` with the Installation ID from Step 5
-- `/path/to/your-downloaded-file.pem` with where your `.pem` file is (probably `~/Downloads/something.pem`)
+Watch multiple repos by adding commas: `NVIDIA/OpenShell,kubernetes/kubernetes`
 
-You should see output like:
+Press **Ctrl+C** to stop.
 
-```
-2026-07-09 12:00:00 INFO GitHub Issue Monitor starting up
-2026-07-09 12:00:00 INFO Watching repos: NVIDIA/OpenShell
-2026-07-09 12:00:00 INFO Notifications go to: your-username/my-issue-alerts
-2026-07-09 12:00:01 INFO [NVIDIA/OpenShell] Found 1 new unassigned issue(s)
-2026-07-09 12:00:01 INFO Analyzing: NVIDIA/OpenShell #1234 — Fix typo in README
-2026-07-09 12:00:04 INFO [NVIDIA/OpenShell #1234] Verdict: GO FOR IT
-2026-07-09 12:00:05 INFO Notification created: https://github.com/your-username/my-issue-alerts/issues/1
-```
-
-Press **Ctrl+C** to stop it.
-
-### Step 7 (Optional): Watch multiple repos
-
-Just add more repos separated by commas:
+### Step 7 (Optional): Run 24/7 on OpenShift/Kubernetes
 
 ```bash
-export WATCH_REPOS="NVIDIA/OpenShell,kubernetes/kubernetes,langchain-ai/langchain"
-```
-
-### Step 8 (Optional): Run 24/7 on OpenShift or Kubernetes
-
-Instead of running on your laptop (which stops when you close it), deploy as a pod:
-
-```bash
-# Build the container
 podman build -t quay.io/your-username/github-issue-monitor:latest .
 podman push quay.io/your-username/github-issue-monitor:latest
 
-# Deploy to your cluster
 oc new-project issue-monitor
 oc create secret generic issue-monitor-secret \
   --from-literal=GITHUB_TOKEN=ghp_... \
@@ -188,41 +147,28 @@ oc apply -f k8s/deployment.yaml
 
 ---
 
-## Configuration Reference
-
-| Variable | Required | Default | What it is |
-|---|---|---|---|
-| `GITHUB_TOKEN` | Yes | — | Your GitHub token from Step 3 |
-| `WATCH_REPOS` | Yes | — | Repos to monitor, comma-separated |
-| `NOTIFY_REPO` | Yes | — | Your private notification repo from Step 2 |
-| `GITHUB_APP_ID` | Yes | — | App ID from Step 4 |
-| `GITHUB_APP_INSTALLATION_ID` | Yes | — | Installation ID from Step 5 |
-| `GITHUB_APP_PRIVATE_KEY_PATH` | Yes | — | Path to your `.pem` file from Step 4 |
-| `POLL_INTERVAL` | No | `30` | Seconds between checks |
-| `LLM_MODEL` | No | `gpt-4o` | Which LLM to use (via GitHub Models) |
-
 ## How It Works
 
-1. Polls the GitHub Events API every 30 seconds for each repo you're watching
-2. Uses ETags (a caching trick) so most polls are free and don't count against rate limits
-3. When it finds a new unassigned issue, sends it to an LLM for assessment
-4. If the verdict is GO FOR IT or STRETCH, creates a notification in your private repo
-5. Because the GitHub App bot creates the issue (not you), GitHub sends you an email
-6. If the verdict is NOT YET, it's silently skipped — no noise
+1. Polls the GitHub Events API for each repo you're watching
+2. Uses ETags (a caching trick) so most polls don't count against rate limits
+3. When it finds a new unassigned issue, sends it to an LLM (GitHub Models, free) for assessment
+4. If the verdict is GO FOR IT or STRETCH, creates a notification issue
+5. GitHub emails you because a bot created the issue, not you
+6. NOT YET issues are silently skipped — no noise
 
 ## Costs
 
-**Free.** GitHub API with ETags costs nothing. GitHub Models LLM is free. If you deploy to a cluster, the pod uses 64MB RAM — basically nothing.
+**Free.** GitHub API, GitHub Models LLM, and GitHub Actions are all free. If you deploy to a cluster, the pod uses 64MB RAM.
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| `ERROR: GITHUB_TOKEN environment variable is required` | You forgot to `export` one of the variables — check all 6 are set |
-| `Failed to create notification: 403` | Your GitHub App isn't installed on the notification repo — redo Step 5 |
-| `LLM analysis failed` | GitHub Models might be down — wait a few minutes and try again |
-| Not getting emails | Make sure you're watching the notification repo with Custom → Issues (Step 2) |
-| Getting too many NOT YET notifications | Update to the latest code — the filter was added after the first version |
+| `ERROR: GITHUB_TOKEN environment variable is required` | You forgot to `export` one of the variables |
+| `Failed to create notification: 403` | GitHub App isn't installed on the notification repo |
+| `LLM analysis failed` | GitHub Models might be down — wait and retry |
+| Not getting emails | Watch the notification repo: Custom → Issues |
+| Actions workflow not running | Go to Actions tab and enable it |
 
 ## License
 
