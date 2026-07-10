@@ -4,30 +4,79 @@ from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are a GitHub issue analyst. Given an issue title and body, assess whether it's suitable for a junior developer / open-source beginner.
+GOOD_FIRST_ISSUE_LABELS = {
+    "good first issue",
+    "good-first-issue",
+    "beginner",
+    "beginner-friendly",
+    "starter",
+    "easy",
+    "newcomer",
+    "first-timers-only",
+}
 
-Return a JSON object with these fields:
+APPROACHABLE_LABELS = {
+    "documentation",
+    "docs",
+    "typo",
+    "test",
+    "tests",
+    "help wanted",
+    "help-wanted",
+}
+
+SYSTEM_PROMPT = """You are assessing GitHub issues for someone who is new to this repository and has access to Claude Code (an AI coding assistant).
+
+The key question is NOT "is this issue easy?" It is: "does this issue give a newcomer a clear enough starting point that they and Claude Code could figure it out?"
+
+Claude Code can help write code, explain unfamiliar syntax, navigate a codebase, and implement fixes. It cannot substitute for architectural knowledge that isn't written down anywhere, or judgment calls that require months of context on the project.
+
+Assess the issue on two things:
+1. STARTING POINT — does the issue tell you WHERE to look? (specific file, function, error message, reproduction steps, or a clear description of what's wrong)
+2. SOLVABILITY WITH AI — once you've found the starting point, is the fix something a newcomer + Claude Code could implement? Or does it require deep architectural judgment that AI can't substitute for?
+
+Use these five verdicts:
+
+- "JUMP ON IT": Clear starting point (file/function/error mentioned), straightforward fix. You and Claude will nail this. Claim it now before someone else does.
+- "GO FOR IT": Clear starting point, harder fix — but Claude Code can guide you through the implementation. Will take effort but very doable.
+- "STRETCH": Starting point is vague but the issue has enough context to investigate with Claude. You'll need to explore the codebase first. Worth attempting if you have time.
+- "LONG SHOT": Very little direction in the issue. Deep expertise likely needed. Claude might get you partway but there's real risk of getting stuck. Only attempt if you're feeling adventurous.
+- "NOT YET": No clear entry point. Requires architectural knowledge or cross-system judgment that Claude can't substitute for. Skip this one.
+
+Return a JSON object with these exact fields:
 - "summary": 2-3 sentence plain English summary of what the issue is about
-- "fix_description": What the fix likely involves (files to change, approach)
-- "skills_needed": List of skills/technologies needed (e.g. ["Python", "REST APIs", "testing"])
+- "fix_description": What the fix likely involves — be specific about files/functions if the issue mentions them
+- "skills_needed": List of specific skills needed (e.g. ["Rust", "async/await", "HTTP parsing"])
 - "difficulty": One of "easy", "medium", "hard"
-  - easy: documentation, config, typo, small one-file change
-  - medium: code change in 1-2 files, requires some domain knowledge
-  - hard: multi-file change, deep domain knowledge, complex debugging
-- "verdict": One of "GO FOR IT", "STRETCH", "NOT YET"
-  - GO FOR IT: a beginner could tackle this with some effort
-  - STRETCH: doable but will be challenging, good learning opportunity
-  - NOT YET: requires deep expertise or major refactoring
-- "verdict_reason": One sentence explaining the verdict
+- "verdict": One of "JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT", "NOT YET"
+- "verdict_reason": One sentence explaining the verdict — focus on whether there's a clear starting point and whether Claude Code could help
 
 Return ONLY the JSON object, no markdown fences or extra text."""
 
 
 def analyze_issue(issue, token, model):
+    labels = [l.lower() for l in issue.get("labels", [])]
+
+    if any(l in GOOD_FIRST_ISSUE_LABELS for l in labels):
+        logger.info(f"[{issue['repo']} #{issue['number']}] Has good-first-issue label")
+        hint = "This issue is explicitly labeled 'good first issue' by the maintainers — they consider it approachable for newcomers."
+        return _llm_analyze(issue, token, model, hint=hint)
+
+    matched = [l for l in labels if l in APPROACHABLE_LABELS]
+    if matched:
+        hint = f"This issue is labeled '{matched[0]}' — consider whether it gives a newcomer a clear starting point."
+        return _llm_analyze(issue, token, model, hint=hint)
+
+    return _llm_analyze(issue, token, model, hint=None)
+
+
+def _llm_analyze(issue, token, model, hint):
     client = OpenAI(
         base_url="https://models.github.ai/inference",
         api_key=token,
     )
+
+    label_note = f"\nNote: {hint}\n" if hint else ""
 
     user_prompt = f"""Issue from {issue['repo']}:
 
@@ -36,7 +85,8 @@ Title: {issue['title']}
 Body:
 {issue['body'][:3000] if issue['body'] else '(no description provided)'}
 
-Labels: {', '.join(issue['labels']) if issue['labels'] else 'none'}"""
+Labels: {', '.join(issue['labels']) if issue['labels'] else 'none'}
+{label_note}"""
 
     try:
         response = client.chat.completions.create(

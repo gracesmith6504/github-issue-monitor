@@ -6,8 +6,10 @@ import jwt
 logger = logging.getLogger(__name__)
 
 VERDICT_TO_LABEL = {
+    "JUMP ON IT": "jump-on-it",
     "GO FOR IT": "go-for-it",
     "STRETCH": "stretch",
+    "LONG SHOT": "long-shot",
     "NOT YET": "not-yet",
 }
 

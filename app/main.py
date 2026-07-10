@@ -28,8 +28,8 @@ def run_once(config, poller):
                 continue
 
             verdict = analysis.get("verdict", "")
-            if verdict == "NOT YET":
-                logger.info(f"[{issue['repo']} #{issue['number']}] Verdict: NOT YET — skipping notification")
+            if verdict in ("LONG SHOT", "NOT YET"):
+                logger.info(f"[{issue['repo']} #{issue['number']}] Verdict: {verdict} — skipping notification")
                 continue
 
             if config.get("app_id"):

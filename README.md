@@ -4,14 +4,24 @@
 
 **The solution:** A bot that watches GitHub repos and emails you the moment a new issue appears that matches your skill level.
 
-An LLM reads the actual issue content — not labels, because people don't label things — and gives you:
+An LLM reads the actual issue content and asks: **does this issue give a newcomer a clear enough starting point that they and Claude Code could figure it out?**
+
+It gives you:
 - A plain English summary of the issue
-- What the fix involves
+- What the fix likely involves (specific files/functions if mentioned)
 - What skills you'd need
 - A difficulty rating (easy / medium / hard)
-- A verdict: **GO FOR IT**, **STRETCH**, or **NOT YET**
+- A verdict — one of five levels:
 
-You only get emailed on GO FOR IT and STRETCH. Everything else is silently skipped.
+| Verdict | Meaning |
+|---|---|
+| **JUMP ON IT** | Clear starting point, straightforward fix. Claim it before someone else does. |
+| **GO FOR IT** | Clear starting point, harder fix — Claude Code can guide you through it. |
+| **STRETCH** | Vague starting point but enough context to investigate with Claude. Worth attempting. |
+| **LONG SHOT** | Very little direction. Real risk of getting stuck. Only if you're feeling adventurous. |
+| **NOT YET** | No clear entry point. Needs deep architectural knowledge. Skip this one. |
+
+You get notified on JUMP ON IT, GO FOR IT, and STRETCH. LONG SHOT and NOT YET are silently skipped.
 
 Works on repos you don't own. No webhooks needed. Completely free.
 
@@ -151,10 +161,11 @@ oc apply -f k8s/deployment.yaml
 
 1. Polls the GitHub Events API for each repo you're watching
 2. Uses ETags (a caching trick) so most polls don't count against rate limits
-3. When it finds a new unassigned issue, sends it to an LLM (GitHub Models, free) for assessment
-4. If the verdict is GO FOR IT or STRETCH, creates a notification issue
-5. GitHub emails you because a bot created the issue, not you
-6. NOT YET issues are silently skipped — no noise
+3. When it finds a new unassigned issue, checks its labels — `good first issue` is an instant strong signal
+4. Sends the issue to an LLM (GitHub Models, free) which asks: does this give a newcomer a clear starting point? Could they tackle it with Claude Code?
+5. If the verdict is JUMP ON IT, GO FOR IT, or STRETCH — creates a notification issue in your alerts repo
+6. LONG SHOT and NOT YET are silently skipped — no noise
+7. GitHub emails you because a bot created the issue, not you
 
 ## Costs
 
