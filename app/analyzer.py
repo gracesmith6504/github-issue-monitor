@@ -39,8 +39,8 @@ Use these five verdicts:
 
 - "JUMP ON IT": Clear starting point (file/function/error mentioned), straightforward fix. You and Claude will nail this. Claim it now before someone else does.
 - "GO FOR IT": Clear starting point, harder fix — but Claude Code can guide you through the implementation. Will take effort but very doable.
-- "STRETCH": Starting point is vague but the issue has enough context to investigate with Claude. You'll need to explore the codebase first. Worth attempting if you have time.
-- "LONG SHOT": Very little direction in the issue. Deep expertise likely needed. Claude might get you partway but there's real risk of getting stuck. Only attempt if you're feeling adventurous.
+- "STRETCH": Starting point is vague but you could begin investigating by reading the code with Claude — exploring the relevant module, tracing a call stack, reading tests. The issue describes the problem clearly enough that you'd know what to look at. Worth attempting if you have time.
+- "LONG SHOT": Very little direction. Even finding the starting point requires running the system in production conditions, profiling tools, or deep expertise to know where to look. Watch for phrases like "cannot pinpoint it", "could be anywhere", "needs profiling", "we don't know why" — these mean there's no codebase entry point for a newcomer. Claude might help you understand things you find but can't find them for you. Real risk of getting stuck for days.
 - "NOT YET": No clear entry point. Requires architectural knowledge or cross-system judgment that Claude can't substitute for. Skip this one.
 
 Return a JSON object with these exact fields:
