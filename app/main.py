@@ -22,7 +22,7 @@ def run_once(config, poller):
         for issue in new_issues:
             logger.info(f"Analyzing: {issue['repo']} #{issue['number']} — {issue['title']}")
 
-            analysis = analyze_issue(issue, config["token"], config["llm_model"])
+            analysis = analyze_issue(issue, config["monitor_token"], config["llm_model"])
             if not analysis:
                 logger.warning(f"Skipping {issue['repo']} #{issue['number']} — analysis failed")
                 continue
@@ -36,7 +36,7 @@ def run_once(config, poller):
                 notifier.notify(issue, analysis, config["notify_repo"],
                                 config["app_id"], config["private_key"], config["installation_id"])
             else:
-                notifier.notify_simple(issue, analysis, config["notify_repo"], config["token"])
+                notifier.notify_simple(issue, analysis, config["notify_repo"], config["notify_token"])
 
 
 def main():
@@ -47,7 +47,7 @@ def main():
     logger.info(f"Notifications go to: {config['notify_repo']}")
     logger.info(f"LLM model: {config['llm_model']}")
 
-    poller = Poller(config["token"])
+    poller = Poller(config["monitor_token"])
 
     if os.environ.get("RUN_ONCE") == "true":
         logger.info("Running single pass (GitHub Actions mode)")

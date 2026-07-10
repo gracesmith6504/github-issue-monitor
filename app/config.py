@@ -3,10 +3,12 @@ import sys
 
 
 def load_config():
-    token = os.environ.get("GITHUB_TOKEN")
-    if not token:
-        print("ERROR: GITHUB_TOKEN environment variable is required")
+    monitor_token = os.environ.get("MONITOR_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not monitor_token:
+        print("ERROR: MONITOR_TOKEN environment variable is required")
         sys.exit(1)
+
+    notify_token = os.environ.get("GITHUB_TOKEN") or monitor_token
 
     watch_repos_raw = os.environ.get("WATCH_REPOS")
     if not watch_repos_raw:
@@ -15,7 +17,7 @@ def load_config():
 
     notify_repo = os.environ.get("NOTIFY_REPO")
     if not notify_repo:
-        print("ERROR: NOTIFY_REPO environment variable is required (e.g. youruser/my-issue-alerts)")
+        print("ERROR: NOTIFY_REPO environment variable is required (e.g. youruser/github-issue-monitor)")
         sys.exit(1)
 
     watch_repos = [r.strip() for r in watch_repos_raw.split(",") if r.strip()]
@@ -27,7 +29,8 @@ def load_config():
     llm_model = os.environ.get("LLM_MODEL", "gpt-4o")
 
     config = {
-        "token": token,
+        "monitor_token": monitor_token,
+        "notify_token": notify_token,
         "watch_repos": watch_repos,
         "notify_repo": notify_repo,
         "poll_interval": poll_interval,

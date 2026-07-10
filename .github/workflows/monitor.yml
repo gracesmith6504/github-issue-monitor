@@ -8,6 +8,8 @@ on:
 jobs:
   monitor:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - uses: actions/checkout@v4
 
@@ -20,9 +22,9 @@ jobs:
 
       - name: Run monitor (single pass)
         env:
-          GITHUB_TOKEN: ${{ secrets.MONITOR_TOKEN }}
+          MONITOR_TOKEN: ${{ secrets.MONITOR_TOKEN }}
           WATCH_REPOS: ${{ vars.WATCH_REPOS }}
-          NOTIFY_REPO: ${{ vars.NOTIFY_REPO || github.repository }}
+          NOTIFY_REPO: ${{ github.repository }}
           LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-4o' }}
           RUN_ONCE: "true"
         run: python -m app.main
