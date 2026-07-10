@@ -55,6 +55,8 @@ class Poller:
             if action == "opened":
                 if issue_id in self.seen_issue_ids:
                     continue
+                if issue_id in self.seen_unassigned_ids:
+                    continue
                 if issue.get("assignees"):
                     continue
                 self.seen_issue_ids.add(issue_id)
