@@ -8,7 +8,7 @@ def load_config():
         print("ERROR: MONITOR_TOKEN environment variable is required")
         sys.exit(1)
 
-    notify_token = os.environ.get("GITHUB_TOKEN") or monitor_token
+    notify_token = os.environ.get("NOTIFY_TOKEN") or os.environ.get("GITHUB_TOKEN") or monitor_token
 
     watch_repos_raw = os.environ.get("WATCH_REPOS")
     if not watch_repos_raw:

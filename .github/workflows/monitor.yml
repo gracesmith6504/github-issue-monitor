@@ -23,6 +23,7 @@ jobs:
       - name: Run monitor (single pass)
         env:
           MONITOR_TOKEN: ${{ secrets.MONITOR_TOKEN }}
+          NOTIFY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WATCH_REPOS: ${{ vars.WATCH_REPOS }}
           NOTIFY_REPO: ${{ github.repository }}
           LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-4o' }}
