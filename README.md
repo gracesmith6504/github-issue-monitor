@@ -46,15 +46,19 @@ Click the **Fork** button at the top of this page. Make sure to tick **Copy the 
 1. In your fork: **Settings** → **Secrets and variables** → **Actions** → **Variables** tab → **New repository variable**
 2. Name: `WATCH_REPOS`, Value: `NVIDIA/OpenShell` (or any repos, comma-separated)
 
-### 4. Enable the workflow and watch for notifications
+### 4. Enable the workflow
 
 1. In your fork, go to the **Actions** tab → click **I understand my workflows, go ahead and enable them**
 2. Click **Issue Monitor** in the sidebar → **Enable workflow**
-3. Go to your fork's main page → **Watch** (top right) → **Custom** → tick **Issues** → **Apply**
 
-That's it. Every 5 minutes GitHub checks your watched repos, analyzes new issues with an LLM, and creates a notification issue in your fork if one is suitable. You get an email because `github-actions[bot]` creates the issue, not you.
+### 5. Watch your fork for email notifications
 
-Click **Run workflow** in the Actions tab to test it immediately.
+1. Go to your fork's main page
+2. Click **Watch** (top right) → **All Activity** → **Apply**
+
+That's it. Every 5 minutes GitHub checks your watched repos, analyzes new issues with an LLM, and creates a notification issue in your fork's Issues tab if one is suitable. You get an email because `github-actions[bot]` creates the issue, not you.
+
+To test it immediately: go to **Actions** → **Issue Monitor** → **Run workflow** → **Run workflow**.
 
 ---
 
@@ -154,7 +158,7 @@ oc apply -f k8s/deployment.yaml
 | `ERROR: MONITOR_TOKEN environment variable is required` | Check your secret is named `MONITOR_TOKEN` exactly |
 | `Failed to create notification: 403` | GitHub App isn't installed on the notification repo (Full Setup only) |
 | `LLM analysis failed` | GitHub Models might be down — wait and retry |
-| Not getting emails | Watch the repo: Custom → Issues. Make sure the bot is creating issues, not you. |
+| Not getting emails | Watch the repo with **All Activity** (not Custom). Check the notification issue shows `github-actions[bot]` as the author, not your username. |
 | Actions workflow not running | Go to Actions tab and enable it |
 | No notifications appearing | OpenShell might just not have had new issues — try adding a busier repo to WATCH_REPOS |
 
