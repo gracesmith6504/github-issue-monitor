@@ -9,6 +9,7 @@ class Poller:
         self.token = token
         self.etags = {}
         self.seen_issue_ids = set()
+        self.seen_unassigned_ids = set()
         self.headers = {
             "Authorization": f"token {token}",
             "Accept": "application/vnd.github+json",
@@ -46,35 +47,50 @@ class Poller:
                 continue
 
             payload = event.get("payload", {})
-            if payload.get("action") != "opened":
-                continue
-
+            action = payload.get("action")
             issue = payload.get("issue", {})
             issue_id = issue.get("id")
-
-            if issue_id in self.seen_issue_ids:
-                continue
-
-            if issue.get("assignees"):
-                continue
-
-            self.seen_issue_ids.add(issue_id)
             repo_name = repo.split("/")[-1]
 
-            new_issues.append({
-                "id": issue_id,
-                "number": issue.get("number"),
-                "title": issue.get("title"),
-                "body": issue.get("body", ""),
-                "url": issue.get("html_url"),
-                "labels": [l.get("name") for l in issue.get("labels", [])],
-                "repo": repo,
-                "repo_name": repo_name,
-            })
+            if action == "opened":
+                if issue_id in self.seen_issue_ids:
+                    continue
+                if issue.get("assignees"):
+                    continue
+                self.seen_issue_ids.add(issue_id)
+                new_issues.append({
+                    "id": issue_id,
+                    "number": issue.get("number"),
+                    "title": issue.get("title"),
+                    "body": issue.get("body", ""),
+                    "url": issue.get("html_url"),
+                    "labels": [l.get("name") for l in issue.get("labels", [])],
+                    "repo": repo,
+                    "repo_name": repo_name,
+                })
+
+            elif action == "unassigned":
+                # Only notify if ALL assignees are now removed (not just one of several)
+                if issue.get("assignees"):
+                    continue
+                if issue_id in self.seen_unassigned_ids:
+                    continue
+                self.seen_unassigned_ids.add(issue_id)
+                new_issues.append({
+                    "id": issue_id,
+                    "number": issue.get("number"),
+                    "title": issue.get("title"),
+                    "body": issue.get("body", ""),
+                    "url": issue.get("html_url"),
+                    "labels": [l.get("name") for l in issue.get("labels", [])],
+                    "repo": repo,
+                    "repo_name": repo_name,
+                    "trigger": "unassigned",
+                })
 
         if new_issues:
-            logger.info(f"[{repo}] Found {len(new_issues)} new unassigned issue(s)")
+            logger.info(f"[{repo}] Found {len(new_issues)} new/reclaimed unassigned issue(s)")
         else:
-            logger.debug(f"[{repo}] No new unassigned issues")
+            logger.debug(f"[{repo}] No new or reclaimed unassigned issues")
 
         return new_issues

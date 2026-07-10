@@ -34,7 +34,10 @@ def _get_app_token(app_id, private_key, installation_id):
 
 
 def _already_notified(issue, notify_repo, headers):
-    search_term = f"[{issue['repo_name']} #{issue['number']}]"
+    if issue.get("trigger") == "unassigned":
+        search_term = f"[RECLAIMED] [{issue['repo_name']} #{issue['number']}]"
+    else:
+        search_term = f"[{issue['repo_name']} #{issue['number']}]"
     url = "https://api.github.com/search/issues"
     params = {
         "q": f'repo:{notify_repo} "{search_term}" in:title is:open',
@@ -64,16 +67,24 @@ def notify(issue, analysis, notify_repo, app_id, private_key, installation_id):
 
     verdict = analysis.get("verdict", "STRETCH")
     label = VERDICT_TO_LABEL.get(verdict, "stretch")
+    reclaimed = issue.get("trigger") == "unassigned"
 
-    title = f"[{issue['repo_name']} #{issue['number']}] {verdict}: {issue['title']}"
+    if reclaimed:
+        title = f"[RECLAIMED] [{issue['repo_name']} #{issue['number']}] {verdict}: {issue['title']}"
+    else:
+        title = f"[{issue['repo_name']} #{issue['number']}] {verdict}: {issue['title']}"
     if len(title) > 256:
         title = title[:253] + "..."
+
+    reclaimed_note = ("\n> **Previously claimed and abandoned.** Check the comments — "
+                      "there may be useful context or partial work from the previous attempt.\n"
+                      if reclaimed else "")
 
     body = f"""## {issue['title']}
 
 **Source:** [{issue['repo']} #{issue['number']}]({issue['url']})
 **Verdict:** {verdict}
-
+{reclaimed_note}
 ---
 
 ### Summary
@@ -123,15 +134,24 @@ def notify_simple(issue, analysis, notify_repo, token):
 
     verdict = analysis.get("verdict", "STRETCH")
     label = VERDICT_TO_LABEL.get(verdict, "stretch")
+    reclaimed = issue.get("trigger") == "unassigned"
 
-    title = f"[{issue['repo_name']} #{issue['number']}] {verdict}: {issue['title']}"
+    if reclaimed:
+        title = f"[RECLAIMED] [{issue['repo_name']} #{issue['number']}] {verdict}: {issue['title']}"
+    else:
+        title = f"[{issue['repo_name']} #{issue['number']}] {verdict}: {issue['title']}"
     if len(title) > 256:
         title = title[:253] + "..."
+
+    reclaimed_note = ("\n> **Previously claimed and abandoned.** Check the comments — "
+                      "there may be useful context or partial work from the previous attempt.\n"
+                      if reclaimed else "")
 
     body = f"""## {issue['title']}
 
 **Source:** [{issue['repo']} #{issue['number']}]({issue['url']})
 **Verdict:** {verdict}
+{reclaimed_note}
 
 ---
 

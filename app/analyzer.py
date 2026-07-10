@@ -54,19 +54,25 @@ Return ONLY the JSON object, no markdown fences or extra text."""
 
 
 def analyze_issue(issue, token, model):
+    reclaimed = issue.get("trigger") == "unassigned"
     labels = [l.lower() for l in issue.get("labels", [])]
+
+    hint = None
+    if reclaimed:
+        hint = ("This issue was previously assigned to a contributor who abandoned it. "
+                "It has been vetted as actionable by the maintainers and may have useful "
+                "comments or partial work from the previous attempt.")
 
     if any(l in GOOD_FIRST_ISSUE_LABELS for l in labels):
         logger.info(f"[{issue['repo']} #{issue['number']}] Has good-first-issue label")
-        hint = "This issue is explicitly labeled 'good first issue' by the maintainers — they consider it approachable for newcomers."
-        return _llm_analyze(issue, token, model, hint=hint)
+        gfi = "This issue is explicitly labeled 'good first issue' by the maintainers — they consider it approachable for newcomers."
+        hint = f"{hint} {gfi}" if hint else gfi
+    elif not reclaimed:
+        matched = [l for l in labels if l in APPROACHABLE_LABELS]
+        if matched:
+            hint = f"This issue is labeled '{matched[0]}' — consider whether it gives a newcomer a clear starting point."
 
-    matched = [l for l in labels if l in APPROACHABLE_LABELS]
-    if matched:
-        hint = f"This issue is labeled '{matched[0]}' — consider whether it gives a newcomer a clear starting point."
-        return _llm_analyze(issue, token, model, hint=hint)
-
-    return _llm_analyze(issue, token, model, hint=None)
+    return _llm_analyze(issue, token, model, hint=hint)
 
 
 def _llm_analyze(issue, token, model, hint):
