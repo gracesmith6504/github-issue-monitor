@@ -141,11 +141,14 @@ oc apply -f k8s/deployment.yaml
 
 1. Polls the GitHub Events API for each repo you're watching
 2. Uses ETags so most polls are free and don't count against rate limits
-3. When it finds a new unassigned issue, checks its labels — `good first issue` is an instant strong signal
-4. Sends the issue to an LLM (GitHub Models, free) which asks: does this give a newcomer a clear starting point? Could they tackle it with Claude Code?
-5. If the verdict is JUMP ON IT, GO FOR IT, or STRETCH — creates a notification issue
-6. LONG SHOT and NOT YET are silently skipped
-7. GitHub emails you because a bot created the issue, not you
+3. Catches two kinds of opportunity:
+   - **New issues** — just opened, no assignee
+   - **Reclaimed issues** — previously assigned, now abandoned (these show up with `[RECLAIMED]` in the email subject and are often better: already vetted by maintainers, may have useful discussion in the comments, lower competition)
+4. Checks labels — `good first issue` is an instant strong signal
+5. Sends the issue to an LLM (GitHub Models, free) which asks: does this give a newcomer a clear starting point? Could they tackle it with Claude Code?
+6. If the verdict is JUMP ON IT, GO FOR IT, or STRETCH — creates a notification issue
+7. LONG SHOT and NOT YET are silently skipped
+8. GitHub emails you because a bot created the issue, not you
 
 ## Costs
 
