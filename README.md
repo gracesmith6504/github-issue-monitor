@@ -6,6 +6,8 @@
 
 An LLM reads each issue and asks: **does this give someone new to this repo a clear enough starting point that they and Claude Code could figure it out?**
 
+It also watches for **reclaimed issues** — previously assigned but then abandoned. These are often better opportunities: already vetted by maintainers, may have partial work or useful discussion in the comments, and lower competition since most people only watch for new issues.
+
 It gives you:
 - A plain English summary of what the issue is about
 - What the fix likely involves (specific files/functions if mentioned)
@@ -22,7 +24,7 @@ It gives you:
 
 You get notified on JUMP ON IT, GO FOR IT, and STRETCH. LONG SHOT and NOT YET are silently skipped.
 
-Works on any public repo you don't own. No webhooks needed. Completely free.
+Works on any public repo. No webhooks needed. Completely free.
 
 ---
 
@@ -46,6 +48,8 @@ Click the **Fork** button at the top of this page. Make sure to tick **Copy the 
 1. In your fork: **Settings** → **Secrets and variables** → **Actions** → **Variables** tab → **New repository variable**
 2. Name: `WATCH_REPOS`, Value: `NVIDIA/OpenShell` (or any repos, comma-separated)
 
+> **Note:** Make sure this goes under the **Variables** tab, not Secrets — they're on the same page but different tabs. If you add it as a Secret it will silently not work.
+
 ### 4. Enable the workflow
 
 1. In your fork, go to the **Actions** tab → click **I understand my workflows, go ahead and enable them**
@@ -58,11 +62,13 @@ Click the **Fork** button at the top of this page. Make sure to tick **Copy the 
 
 That's it. Every 5 minutes GitHub checks your watched repos, analyzes new issues with an LLM, and creates a notification issue in your fork's Issues tab if one is suitable. You get an email because `github-actions[bot]` creates the issue, not you.
 
-To test it immediately: go to **Actions** → **Issue Monitor** → **Run workflow** → **Run workflow**.
+> **Test it now:** Go to **Actions** → **Issue Monitor** → **Run workflow** → **Run workflow**. If everything is set up correctly it will run immediately. If no notification appears, OpenShell just didn't have any new issues in the last poll window — that's normal. Try adding a busier repo like `golang/go` to `WATCH_REPOS` to see a notification faster.
 
 ---
 
-## Full Setup — 10 minutes (self-hosted, polls every 30 sec)
+## Advanced Setup — 30+ minutes (self-hosted, polls every 30 sec)
+
+Most users don't need this — Quick Setup is enough. This is for faster detection or running 24/7 on a cluster.
 
 For faster detection, run the Python app yourself. Polls every 30 seconds. Can be deployed on OpenShift/Kubernetes to run 24/7.
 
@@ -159,7 +165,8 @@ oc apply -f k8s/deployment.yaml
 | Problem | Fix |
 |---|---|
 | `ERROR: MONITOR_TOKEN environment variable is required` | Check your secret is named `MONITOR_TOKEN` exactly |
-| `Failed to create notification: 403` | GitHub App isn't installed on the notification repo (Full Setup only) |
+| `ERROR: WATCH_REPOS environment variable is required` | You added `WATCH_REPOS` as a Secret instead of a Variable — go back and add it under the **Variables** tab |
+| `Failed to create notification: 403` | GitHub App isn't installed on the notification repo (Advanced Setup only) |
 | `LLM analysis failed` | GitHub Models might be down — wait and retry |
 | Not getting emails | Watch the repo with **All Activity** (not Custom). Check the notification issue shows `github-actions[bot]` as the author, not your username. |
 | Actions workflow not running | Go to Actions tab and enable it |
