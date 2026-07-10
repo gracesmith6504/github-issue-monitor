@@ -48,7 +48,7 @@ Return a JSON object with these exact fields:
 - "fix_description": What the fix likely involves — be specific about files/functions if the issue mentions them
 - "skills_needed": List of specific skills needed (e.g. ["Rust", "async/await", "HTTP parsing"])
 - "verdict": One of "JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT", "NOT YET"
-- "verdict_reason": One sentence explaining the verdict — focus on whether there's a clear starting point and whether Claude Code could help
+- "verdict_reason": One sentence explaining the verdict based on what's specific to this issue — what the starting point is (or isn't), what expertise is needed, what's vague. Do NOT write generic lines like "Claude Code can help" — that applies to every issue and adds nothing.
 
 Return ONLY the JSON object, no markdown fences or extra text."""
 
