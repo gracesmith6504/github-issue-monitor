@@ -38,7 +38,7 @@ Assess the issue on two things:
 Use these five verdicts:
 
 - "JUMP ON IT": Clear starting point (file/function/error mentioned), straightforward fix. You and Claude will nail this. Claim it now before someone else does.
-- "GO FOR IT": Clear starting point, harder fix — but Claude Code can guide you through the implementation. Will take effort but very doable.
+- "GO FOR IT": Clear starting point AND the fix is implementable without deep security/protocol/architectural expertise. Claude Code can guide you through it. Knowing which folder or module is involved is NOT enough for GO FOR IT — you also need to know what to actually change. Will take effort but very doable.
 - "STRETCH": Starting point is vague but you could begin investigating by reading the code with Claude — exploring the relevant module, tracing a call stack, reading tests. The issue describes the problem clearly enough that you'd know what to look at. Worth attempting if you have time.
 - "LONG SHOT": Very little direction. Even finding the starting point requires running the system in production conditions, profiling tools, or deep expertise to know where to look. Watch for phrases like "cannot pinpoint it", "could be anywhere", "needs profiling", "we don't know why" — these mean there's no codebase entry point for a newcomer. Claude might help you understand things you find but can't find them for you. Real risk of getting stuck for days.
 - "NOT YET": No clear entry point. Requires architectural knowledge or cross-system judgment that Claude can't substitute for. Skip this one.
@@ -47,7 +47,6 @@ Return a JSON object with these exact fields:
 - "summary": 2-3 sentence plain English summary of what the issue is about
 - "fix_description": What the fix likely involves — be specific about files/functions if the issue mentions them
 - "skills_needed": List of specific skills needed (e.g. ["Rust", "async/await", "HTTP parsing"])
-- "difficulty": One of "easy", "medium", "hard"
 - "verdict": One of "JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT", "NOT YET"
 - "verdict_reason": One sentence explaining the verdict — focus on whether there's a clear starting point and whether Claude Code could help
 

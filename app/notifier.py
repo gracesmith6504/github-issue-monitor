@@ -64,7 +64,6 @@ def notify(issue, analysis, notify_repo, app_id, private_key, installation_id):
 
     verdict = analysis.get("verdict", "STRETCH")
     label = VERDICT_TO_LABEL.get(verdict, "stretch")
-    difficulty = analysis.get("difficulty", "unknown")
 
     title = f"[{issue['repo_name']} #{issue['number']}] {verdict}: {issue['title']}"
     if len(title) > 256:
@@ -73,7 +72,7 @@ def notify(issue, analysis, notify_repo, app_id, private_key, installation_id):
     body = f"""## {issue['title']}
 
 **Source:** [{issue['repo']} #{issue['number']}]({issue['url']})
-**Verdict:** {verdict} | **Difficulty:** {difficulty}
+**Verdict:** {verdict}
 
 ---
 
@@ -124,7 +123,6 @@ def notify_simple(issue, analysis, notify_repo, token):
 
     verdict = analysis.get("verdict", "STRETCH")
     label = VERDICT_TO_LABEL.get(verdict, "stretch")
-    difficulty = analysis.get("difficulty", "unknown")
 
     title = f"[{issue['repo_name']} #{issue['number']}] {verdict}: {issue['title']}"
     if len(title) > 256:
@@ -133,7 +131,7 @@ def notify_simple(issue, analysis, notify_repo, token):
     body = f"""## {issue['title']}
 
 **Source:** [{issue['repo']} #{issue['number']}]({issue['url']})
-**Verdict:** {verdict} | **Difficulty:** {difficulty}
+**Verdict:** {verdict}
 
 ---
 
