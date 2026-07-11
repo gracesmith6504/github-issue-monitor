@@ -27,6 +27,23 @@ class Poller:
             logger.warning(f"Dedup check failed: {e}")
         return False
 
+    def _has_linked_open_pr(self, repo, number):
+        url = f"https://api.github.com/repos/{repo}/issues/{number}/timeline"
+        headers = {**self.headers, "Accept": "application/vnd.github.mockingbird-preview+json"}
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                return False
+            for event in resp.json():
+                if event.get("event") == "cross-referenced":
+                    source = event.get("source", {})
+                    src_issue = source.get("issue", {})
+                    if src_issue.get("pull_request") and src_issue.get("state") == "open":
+                        return True
+        except requests.RequestException as e:
+            logger.warning(f"[{repo} #{number}] Timeline check failed: {e}")
+        return False
+
     def poll(self, repo, since, notify_repo, limit=5):
         url = f"https://api.github.com/repos/{repo}/issues"
         params = {
@@ -59,6 +76,10 @@ class Poller:
                     continue
 
                 number = issue.get("number")
+                if self._has_linked_open_pr(repo, number):
+                    logger.info(f"[{repo} #{number}] Skipping — has linked open PR")
+                    continue
+
                 already_notified = self._is_already_notified(number, repo_name, notify_repo)
 
                 issue_dict = {

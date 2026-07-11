@@ -153,7 +153,7 @@ oc run issue-monitor \
 ## How It Works
 
 1. Polls the GitHub Issues API for each repo you're watching, using a persistent `since` timestamp to track what's already been seen
-2. Filters out pull requests, assigned issues, and anything the LLM rates as LONG SHOT or NOT YET
+2. Filters out pull requests, assigned issues, issues with linked open PRs (someone is already working on it even without a formal assignee), and anything the LLM rates as LONG SHOT or NOT YET
 3. Catches two kinds of opportunity: new unassigned issues, and reclaimed issues (previously assigned, now abandoned)
 4. Checks labels — `good first issue` is an instant strong signal
 5. Sends the issue to an LLM (GitHub Models, free) which rates it on how approachable it is for a newcomer
