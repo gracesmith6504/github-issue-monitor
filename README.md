@@ -34,7 +34,7 @@ Works on any public repo. No webhooks needed. Completely free.
 
 ## Quick Setup — 2 minutes
 
-No server, no terminal, no installs. GitHub runs it for you on a schedule and emails you when it finds something. Typically within minutes of an issue being opened.
+No server, no terminal, no installs. GitHub runs it for you every 5 minutes and emails you when it finds something.
 
 ### 1. Fork this repo
 
