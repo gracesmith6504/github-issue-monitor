@@ -33,7 +33,7 @@ def load_config():
     if last_checked_raw:
         last_checked = last_checked_raw
     else:
-        last_checked = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        last_checked = datetime.now(timezone.utc).isoformat()
 
     config = {
         "monitor_token": monitor_token,

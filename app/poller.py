@@ -27,7 +27,7 @@ class Poller:
             logger.warning(f"Dedup check failed: {e}")
         return False
 
-    def poll(self, repo, since, notify_repo):
+    def poll(self, repo, since, notify_repo, limit=5):
         url = f"https://api.github.com/repos/{repo}/issues"
         params = {
             "state": "open",
@@ -39,7 +39,7 @@ class Poller:
         repo_name = repo.split("/")[-1]
         new_issues = []
 
-        while url:
+        while url and len(new_issues) < limit:
             try:
                 resp = requests.get(url, headers=self.headers, params=params, timeout=10)
             except requests.RequestException as e:
@@ -51,6 +51,8 @@ class Poller:
                 break
 
             for issue in resp.json():
+                if len(new_issues) >= limit:
+                    break
                 if "pull_request" in issue:
                     continue
                 if issue.get("assignees"):
