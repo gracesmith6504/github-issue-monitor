@@ -40,26 +40,19 @@ No server, no terminal, no installs. GitHub runs it on its own servers every 5 m
 
 Click the **Fork** button at the top of this page. Make sure to tick **Copy the main branch only**.
 
-### 2. Add your GitHub token
-
-1. Go to [github.com/settings/tokens](https://github.com/settings/tokens) → **Generate new token (classic)**
-2. Give it a name, tick **`repo`**, click **Generate token**, copy it
-3. In your fork: **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
-4. Name: `MONITOR_TOKEN`, Value: paste your token → **Add secret**
-
-### 3. Set which repos to watch
+### 2. Set which repos to watch
 
 1. In your fork: **Settings** → **Secrets and variables** → **Actions** → **Variables** tab → **New repository variable**
 2. Name: `WATCH_REPOS`, Value: `NVIDIA/OpenShell` (or any repos, comma-separated)
 
 > **Important:** This goes under the **Variables** tab, not Secrets — they're on the same page but different tabs. If you add it as a Secret it will silently not work.
 
-### 4. Enable the workflow
+### 3. Enable the workflow
 
 1. In your fork, go to the **Actions** tab → click **I understand my workflows, go ahead and enable them**
 2. Click **Issue Monitor** in the sidebar → **Enable workflow**
 
-### 5. Subscribe to email notifications
+### 4. Subscribe to email notifications
 
 1. Go to your fork's main page
 2. Click **Watch** (top right) → **All Activity** → **Apply**
@@ -67,6 +60,8 @@ Click the **Fork** button at the top of this page. Make sure to tick **Copy the 
 That's it. Every 5 minutes GitHub checks your watched repos, analyzes new issues with an LLM, and creates a notification issue in your fork's Issues tab. You get an email because `github-actions[bot]` opens the issue, not you.
 
 > **Nothing showing up?** The repo you're watching might just not have had a new issue in the last 5 minutes — that's normal. You can also add busier repos like `golang/go` or `kubernetes/kubernetes` to `WATCH_REPOS` to see a notification faster. Issues that are already assigned or that the LLM rates as NOT YET or LONG SHOT are silently skipped.
+
+> **Watching a private repo?** Add a `MONITOR_TOKEN` secret with a GitHub PAT (classic, `repo` scope) so the monitor can access it.
 
 ---
 

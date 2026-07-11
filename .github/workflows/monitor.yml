@@ -11,6 +11,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
 
@@ -23,7 +24,7 @@ jobs:
 
       - name: Run monitor (single pass)
         env:
-          MONITOR_TOKEN: ${{ secrets.MONITOR_TOKEN }}
+          MONITOR_TOKEN: ${{ secrets.MONITOR_TOKEN || secrets.GITHUB_TOKEN }}
           NOTIFY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WATCH_REPOS: ${{ vars.WATCH_REPOS }}
           LAST_CHECKED: ${{ vars.LAST_CHECKED }}
