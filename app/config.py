@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime, timezone, timedelta
 
 
 def load_config():
@@ -28,6 +29,12 @@ def load_config():
     poll_interval = int(os.environ.get("POLL_INTERVAL", "30"))
     llm_model = os.environ.get("LLM_MODEL", "gpt-4o")
 
+    last_checked_raw = os.environ.get("LAST_CHECKED")
+    if last_checked_raw:
+        last_checked = last_checked_raw
+    else:
+        last_checked = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+
     config = {
         "monitor_token": monitor_token,
         "notify_token": notify_token,
@@ -35,6 +42,7 @@ def load_config():
         "notify_repo": notify_repo,
         "poll_interval": poll_interval,
         "llm_model": llm_model,
+        "last_checked": last_checked,
     }
 
     app_id = os.environ.get("GITHUB_APP_ID")

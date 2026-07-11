@@ -26,6 +26,7 @@ jobs:
           MONITOR_TOKEN: ${{ secrets.MONITOR_TOKEN }}
           NOTIFY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WATCH_REPOS: ${{ vars.WATCH_REPOS }}
+          LAST_CHECKED: ${{ vars.LAST_CHECKED }}
           NOTIFY_REPO: ${{ github.repository }}
           LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-4o' }}
           RUN_ONCE: "true"

@@ -1,6 +1,8 @@
 import os
 import time
 import logging
+import requests
+from datetime import datetime, timezone
 
 from app.config import load_config
 from app.poller import Poller
@@ -15,9 +17,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def run_once(config, poller):
+def _update_last_checked(token, notify_repo, run_start):
+    owner, repo = notify_repo.split("/")
+    url = f"https://api.github.com/repos/{owner}/{repo}/actions/variables/LAST_CHECKED"
+    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
+    payload = {"name": "LAST_CHECKED", "value": run_start}
+    resp = requests.patch(url, headers=headers, json=payload, timeout=10)
+    if resp.status_code == 404:
+        requests.post(
+            f"https://api.github.com/repos/{owner}/{repo}/actions/variables",
+            headers=headers, json=payload, timeout=10,
+        )
+        logger.info("LAST_CHECKED variable created")
+    elif resp.status_code in (200, 204):
+        logger.info(f"LAST_CHECKED updated to {run_start}")
+    else:
+        logger.warning(f"Failed to update LAST_CHECKED: {resp.status_code} {resp.text[:200]}")
+
+
+def run_once(config, poller, run_start):
     for repo in config["watch_repos"]:
-        new_issues = poller.poll(repo)
+        new_issues = poller.poll(repo, config["last_checked"], config["notify_repo"])
 
         for issue in new_issues:
             logger.info(f"Analyzing: {issue['repo']} #{issue['number']} — {issue['title']}")
@@ -38,6 +58,8 @@ def run_once(config, poller):
             else:
                 notifier.notify_simple(issue, analysis, config["notify_repo"], config["notify_token"])
 
+    _update_last_checked(config["monitor_token"], config["notify_repo"], run_start)
+
 
 def main():
     config = load_config()
@@ -46,16 +68,19 @@ def main():
     logger.info(f"Watching repos: {', '.join(config['watch_repos'])}")
     logger.info(f"Notifications go to: {config['notify_repo']}")
     logger.info(f"LLM model: {config['llm_model']}")
+    logger.info(f"Checking issues since: {config['last_checked']}")
 
     poller = Poller(config["monitor_token"])
 
     if os.environ.get("RUN_ONCE") == "true":
         logger.info("Running single pass (GitHub Actions mode)")
-        run_once(config, poller)
+        run_start = datetime.now(timezone.utc).isoformat()
+        run_once(config, poller, run_start)
     else:
         logger.info(f"Poll interval: {config['poll_interval']}s")
         while True:
-            run_once(config, poller)
+            run_start = datetime.now(timezone.utc).isoformat()
+            run_once(config, poller, run_start)
             time.sleep(config["poll_interval"])
 
 

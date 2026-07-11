@@ -7,88 +7,81 @@ logger = logging.getLogger(__name__)
 class Poller:
     def __init__(self, token):
         self.token = token
-        self.etags = {}
-        self.seen_issue_ids = set()
-        self.seen_unassigned_ids = set()
         self.headers = {
             "Authorization": f"token {token}",
             "Accept": "application/vnd.github+json",
         }
 
-    def poll(self, repo):
-        url = f"https://api.github.com/repos/{repo}/events"
-        headers = dict(self.headers)
-
-        if repo in self.etags:
-            headers["If-None-Match"] = self.etags[repo]
-
+    def _is_already_notified(self, number, repo_name, notify_repo):
+        search_term = f"[{repo_name} #{number}]"
+        url = "https://api.github.com/search/issues"
+        params = {
+            "q": f'repo:{notify_repo} "{search_term}" in:title is:open',
+            "per_page": 1,
+        }
         try:
-            resp = requests.get(url, headers=headers, timeout=10)
+            resp = requests.get(url, headers=self.headers, params=params, timeout=10)
+            if resp.status_code == 200 and resp.json().get("total_count", 0) > 0:
+                return True
         except requests.RequestException as e:
-            logger.error(f"[{repo}] Request failed: {e}")
-            return []
+            logger.warning(f"Dedup check failed: {e}")
+        return False
 
-        if resp.status_code == 304:
-            logger.debug(f"[{repo}] No changes (304)")
-            return []
-
-        if resp.status_code != 200:
-            logger.warning(f"[{repo}] Got status {resp.status_code}: {resp.text[:200]}")
-            return []
-
-        if "ETag" in resp.headers:
-            self.etags[repo] = resp.headers["ETag"]
-
-        events = resp.json()
+    def poll(self, repo, since, notify_repo):
+        url = f"https://api.github.com/repos/{repo}/issues"
+        params = {
+            "state": "open",
+            "since": since,
+            "sort": "updated",
+            "direction": "asc",
+            "per_page": 100,
+        }
+        repo_name = repo.split("/")[-1]
         new_issues = []
 
-        for event in events:
-            if event.get("type") != "IssuesEvent":
-                continue
+        while url:
+            try:
+                resp = requests.get(url, headers=self.headers, params=params, timeout=10)
+            except requests.RequestException as e:
+                logger.error(f"[{repo}] Request failed: {e}")
+                break
 
-            payload = event.get("payload", {})
-            action = payload.get("action")
-            issue = payload.get("issue", {})
-            issue_id = issue.get("id")
-            repo_name = repo.split("/")[-1]
+            if resp.status_code != 200:
+                logger.warning(f"[{repo}] Got status {resp.status_code}: {resp.text[:200]}")
+                break
 
-            if action == "opened":
-                if issue_id in self.seen_issue_ids:
-                    continue
-                if issue_id in self.seen_unassigned_ids:
+            for issue in resp.json():
+                if "pull_request" in issue:
                     continue
                 if issue.get("assignees"):
                     continue
-                self.seen_issue_ids.add(issue_id)
-                new_issues.append({
-                    "id": issue_id,
-                    "number": issue.get("number"),
+
+                number = issue.get("number")
+                already_notified = self._is_already_notified(number, repo_name, notify_repo)
+
+                issue_dict = {
+                    "id": issue.get("id"),
+                    "number": number,
                     "title": issue.get("title"),
                     "body": issue.get("body", ""),
                     "url": issue.get("html_url"),
                     "labels": [l.get("name") for l in issue.get("labels", [])],
                     "repo": repo,
                     "repo_name": repo_name,
-                })
+                }
+                if already_notified:
+                    issue_dict["trigger"] = "unassigned"
 
-            elif action == "unassigned":
-                # Only notify if ALL assignees are now removed (not just one of several)
-                if issue.get("assignees"):
-                    continue
-                if issue_id in self.seen_unassigned_ids:
-                    continue
-                self.seen_unassigned_ids.add(issue_id)
-                new_issues.append({
-                    "id": issue_id,
-                    "number": issue.get("number"),
-                    "title": issue.get("title"),
-                    "body": issue.get("body", ""),
-                    "url": issue.get("html_url"),
-                    "labels": [l.get("name") for l in issue.get("labels", [])],
-                    "repo": repo,
-                    "repo_name": repo_name,
-                    "trigger": "unassigned",
-                })
+                new_issues.append(issue_dict)
+
+            # Follow pagination
+            next_url = None
+            for part in resp.headers.get("Link", "").split(","):
+                if 'rel="next"' in part:
+                    next_url = part.split(";")[0].strip().strip("<>")
+                    break
+            url = next_url
+            params = {}
 
         if new_issues:
             logger.info(f"[{repo}] Found {len(new_issues)} new/reclaimed unassigned issue(s)")
