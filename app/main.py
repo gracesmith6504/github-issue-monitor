@@ -39,7 +39,9 @@ def run_once(config, poller, run_start):
     for repo in config["watch_repos"]:
         new_issues = poller.poll(repo, config["last_checked"], config["notify_repo"])
 
-        for issue in new_issues:
+        for i, issue in enumerate(new_issues):
+            if i > 0:
+                time.sleep(7)
             logger.info(f"Analyzing: {issue['repo']} #{issue['number']} — {issue['title']}")
 
             analysis = analyze_issue(issue, config["monitor_token"], config["llm_model"])
