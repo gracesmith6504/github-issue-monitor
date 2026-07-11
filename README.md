@@ -1,8 +1,8 @@
 # GitHub Issue Monitor
 
-**The problem:** You want to contribute to open source but the issues you can actually do get claimed before you even see them.
+**The problem:** You want to contribute to open source but it's hard to know which issues are suitable for newcomers, and the ones you could actually do get claimed quickly before you even see them.
 
-**The solution:** A bot that watches GitHub repos and emails you within minutes when a new issue appears that a newcomer could tackle — even with AI help.
+**The solution:** A bot that watches GitHub repos, filters out everything too advanced, and emails you the ones a newcomer could realistically tackle with AI help.
 
 An LLM reads each issue and asks: **does this give someone new to this repo a clear enough starting point that they and Claude Code could figure it out?**
 
