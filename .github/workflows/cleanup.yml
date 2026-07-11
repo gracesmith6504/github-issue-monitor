@@ -1,0 +1,24 @@
+name: Cleanup old notifications
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close notification issues older than 7 days
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CUTOFF=$(date -d '7 days ago' --iso-8601=seconds 2>/dev/null || date -v-7d +%Y-%m-%dT%H:%M:%SZ)
+          gh issue list --repo ${{ github.repository }} \
+            --state open --limit 100 --json number,createdAt \
+            | jq -r --arg cutoff "$CUTOFF" \
+              '.[] | select(.createdAt < $cutoff) | .number' \
+            | xargs -r -I{} gh issue close {} --repo ${{ github.repository }}

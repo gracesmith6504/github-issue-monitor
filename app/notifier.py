@@ -92,7 +92,8 @@ def _post_notification(issue, analysis, notify_repo, token):
 
     skills = ', '.join(analysis.get('skills_needed', ['unknown']))
 
-    body = f"""{prefix}{emoji} **{verdict}** — [{issue['repo']} #{issue['number']}]({issue['url']})
+    safe_url = issue['url'].replace('https://github.com/', 'https://redirect.github.com/')
+    body = f"""{prefix}{emoji} **{verdict}** — [{issue['repo']} #{issue['number']}]({safe_url})
 
 **Skills:** {skills}
 {reclaimed_note}
@@ -105,7 +106,7 @@ def _post_notification(issue, analysis, notify_repo, token):
 **Why this verdict:** {analysis.get('verdict_reason', 'No reason provided.')}
 
 ---
-*[github-issue-monitor](https://github.com/gracesmith6504/github-issue-monitor)*"""
+*[github-issue-monitor](https://github.com/{notify_repo})*"""
 
     url = f"https://api.github.com/repos/{notify_repo}/issues"
     payload = {"title": title, "body": body, "labels": [label]}
