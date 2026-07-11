@@ -1,10 +1,10 @@
 # GitHub Issue Monitor
 
-**The problem:** You want to contribute to open source but it's hard to know which issues are suitable for newcomers, and the ones you could actually do get claimed quickly before you even see them.
+A bot that emails you newcomer-friendly open source issues before they get claimed.
 
-**The solution:** A bot that watches GitHub repos, filters out everything too advanced, and emails you the ones a newcomer could realistically tackle with AI help.
+**The problem:** Contributing to open source is hard when you're new. Most issues are too complex, and the ones you could actually do get claimed quickly before you even see them.
 
-An LLM reads each issue and asks: **does this give someone new to this repo a clear enough starting point that they and Claude Code could figure it out?**
+**The solution:** Fork this repo, tell it which repos to watch, and it emails you every time a suitable issue appears — rated by an LLM so you only see the ones worth attempting.
 
 This is what the email looks like:
 
@@ -81,7 +81,7 @@ This requires a **GitHub App** so the bot has its own identity (otherwise GitHub
 ### Step 1: Clone and install
 
 ```bash
-git clone https://github.com/gracesmith6504/github-issue-monitor.git
+git clone https://github.com/YOUR-USERNAME/github-issue-monitor.git
 cd github-issue-monitor
 pip install -r requirements.txt
 ```
@@ -155,14 +155,11 @@ oc run issue-monitor \
 ## How It Works
 
 1. Polls the GitHub Issues API for each repo you're watching, using a persistent `since` timestamp to track what's already been seen
-2. Catches two kinds of opportunity:
-   - **New issues** — just opened, no assignee
-   - **Reclaimed issues** — previously assigned, now abandoned (these show up with `[RECLAIMED]` in the email subject and are often better: already vetted by maintainers, may have useful discussion in the comments, lower competition)
+2. Filters out pull requests, assigned issues, and anything the LLM rates as LONG SHOT or NOT YET
+3. Catches two kinds of opportunity: new unassigned issues, and reclaimed issues (previously assigned, now abandoned)
 4. Checks labels — `good first issue` is an instant strong signal
-5. Sends the issue to an LLM (GitHub Models, free) which asks: does this give a newcomer a clear starting point? Could they tackle it with Claude Code?
-6. If the verdict is JUMP ON IT, GO FOR IT, or STRETCH — creates a notification issue
-7. LONG SHOT and NOT YET are silently skipped
-8. GitHub emails you because a bot created the issue, not you
+5. Sends the issue to an LLM (GitHub Models, free) which rates it on how approachable it is for a newcomer
+6. Creates a notification issue in your fork — GitHub emails you because the bot opens it, not you
 
 ## Costs
 
