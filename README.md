@@ -145,9 +145,8 @@ oc apply -f k8s/deployment.yaml
 
 ## How It Works
 
-1. Polls the GitHub Events API for each repo you're watching
-2. Uses ETags so most polls are free and don't count against rate limits
-3. Catches two kinds of opportunity:
+1. Polls the GitHub Issues API for each repo you're watching, using a persistent `since` timestamp so no issue is ever missed — even on very active repos
+2. Catches two kinds of opportunity:
    - **New issues** — just opened, no assignee
    - **Reclaimed issues** — previously assigned, now abandoned (these show up with `[RECLAIMED]` in the email subject and are often better: already vetted by maintainers, may have useful discussion in the comments, lower competition)
 4. Checks labels — `good first issue` is an instant strong signal
