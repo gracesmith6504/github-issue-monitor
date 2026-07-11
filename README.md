@@ -45,7 +45,11 @@ Click the **Fork** button at the top of this page. Make sure to tick **Copy the 
 1. In your fork: **Settings** → **Secrets and variables** → **Actions** → **Variables** tab → **New repository variable**
 2. Name: `WATCH_REPOS`, Value: everything after `github.com/` in the repo URL
 
-For example `https://github.com/NVIDIA/OpenShell` → `NVIDIA/OpenShell`. Multiple repos: `NVIDIA/OpenShell,golang/go`
+The value is everything after `github.com/` in the URL — for example:
+- `https://github.com/NVIDIA/OpenShell` → `NVIDIA/OpenShell`
+- `https://github.com/kagenti/kagenti-operator` → `kagenti/kagenti-operator`
+
+Multiple repos: `NVIDIA/OpenShell,kagenti/kagenti-operator`
 
 > **Important:** This goes under the **Variables** tab, not Secrets — they're on the same page but different tabs. If you add it as a Secret it will silently not work.
 
