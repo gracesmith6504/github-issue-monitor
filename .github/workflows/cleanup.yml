@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   cleanup:
+    if: github.repository != 'gracesmith6504/github-issue-monitor'
     runs-on: ubuntu-latest
     steps:
       - name: Close notification issues older than 7 days

@@ -167,7 +167,7 @@ oc run issue-monitor \
 
 | Problem | Fix |
 |---|---|
-| `ERROR: MONITOR_TOKEN environment variable is required` | Check your secret is named `MONITOR_TOKEN` exactly |
+| `ERROR: MONITOR_TOKEN environment variable is required` | Only applies to Advanced Setup — check your secret is named `MONITOR_TOKEN` exactly. Quick Setup users should never see this. |
 | `ERROR: WATCH_REPOS environment variable is required` | You added `WATCH_REPOS` as a Secret instead of a Variable — go back and add it under the **Variables** tab |
 | `Failed to create notification: 403` | GitHub App isn't installed on the notification repo (Advanced Setup only) |
 | `LLM analysis failed` | GitHub Models might be down — wait and retry |
