@@ -34,7 +34,7 @@ Works on any public repo. No webhooks needed. Completely free.
 
 ## Quick Setup — 2 minutes
 
-No server, no terminal, no installs. GitHub runs it for you every 5 minutes and emails you when it finds something.
+No server, no terminal, no installs. GitHub runs it on its own servers every 5 minutes — even when your laptop is off.
 
 ### 1. Fork this repo
 
@@ -72,9 +72,9 @@ That's it. Every 5 minutes GitHub checks your watched repos, analyzes new issues
 
 ## Advanced Setup — 30+ minutes (self-hosted, polls every 30 sec)
 
-Most users don't need this — Quick Setup is enough. This is for faster detection or running 24/7 on a cluster.
+Most users don't need this — Quick Setup is enough. Use this if you want to poll every 30 seconds instead of every 5 minutes, or if you want to run on your own cluster instead of relying on GitHub Actions.
 
-For faster detection, run the Python app yourself. Polls every 30 seconds. Can be deployed on OpenShift/Kubernetes to run 24/7.
+Run the Python app yourself. Polls every 30 seconds. Can be deployed on OpenShift/Kubernetes.
 
 This requires a **GitHub App** so the bot has its own identity (otherwise GitHub won't email you about issues you created yourself).
 
