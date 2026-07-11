@@ -10,7 +10,7 @@ This is what the email looks like:
 
 ![Email notification example](docs/email-example.png)
 
-It also watches for **reclaimed issues** — previously assigned but then abandoned. These are often better opportunities: already vetted by maintainers, may have partial work or useful discussion in the comments, and lower competition since most people only watch for new issues.
+It also watches for **reclaimed issues** — previously assigned but then abandoned. These show up with `[RECLAIMED]` in the subject line.
 
 Each notification tells you:
 - A plain English summary of what the issue is about
@@ -18,13 +18,13 @@ Each notification tells you:
 - What skills you'd need
 - A verdict — one of five levels:
 
-| Verdict | Meaning |
-|---|---|
-| **JUMP ON IT** | Clear starting point, straightforward fix. Claim it before someone else does. |
-| **GO FOR IT** | Clear starting point, harder fix — Claude Code can guide you through it. |
-| **STRETCH** | Vague starting point but enough context to investigate with Claude. Worth attempting. |
-| **LONG SHOT** | Very little direction. Real risk of getting stuck. Only if you're feeling adventurous. |
-| **NOT YET** | No clear entry point. Needs deep architectural knowledge. Skip this one. |
+| | Verdict | Meaning |
+|---|---|---|
+| 🟢 | **JUMP ON IT** | Clear starting point, straightforward fix. Claim it before someone else does. |
+| 🔵 | **GO FOR IT** | Clear starting point, harder fix — Claude Code can guide you through it. |
+| 🟡 | **STRETCH** | Vague starting point but enough context to investigate with Claude. Worth attempting. |
+| 🟠 | **LONG SHOT** | Very little direction. Real risk of getting stuck. Only if you're feeling adventurous. |
+| 🔴 | **NOT YET** | No clear entry point. Needs deep architectural knowledge. Skip this one. |
 
 You get notified on JUMP ON IT, GO FOR IT, and STRETCH. LONG SHOT and NOT YET are silently skipped.
 
@@ -154,7 +154,7 @@ oc run issue-monitor \
 
 ## How It Works
 
-1. Polls the GitHub Issues API for each repo you're watching, using a persistent `since` timestamp so no issue is ever missed — even on very active repos
+1. Polls the GitHub Issues API for each repo you're watching, using a persistent `since` timestamp to track what's already been seen
 2. Catches two kinds of opportunity:
    - **New issues** — just opened, no assignee
    - **Reclaimed issues** — previously assigned, now abandoned (these show up with `[RECLAIMED]` in the email subject and are often better: already vetted by maintainers, may have useful discussion in the comments, lower competition)
@@ -166,7 +166,7 @@ oc run issue-monitor \
 
 ## Costs
 
-**Free.** GitHub API, GitHub Models LLM, and GitHub Actions are all free for public repos. If you deploy to a cluster, the pod uses ~64MB RAM.
+**Free.** GitHub API, GitHub Models LLM, and GitHub Actions are all free for public repos.
 
 ## Troubleshooting
 

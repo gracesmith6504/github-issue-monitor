@@ -1,6 +1,6 @@
 import os
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 
 def load_config():
