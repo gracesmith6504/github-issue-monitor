@@ -2,7 +2,7 @@
 
 **The problem:** You want to contribute to open source but the issues you can actually do get claimed before you even see them.
 
-**The solution:** A bot that watches GitHub repos and emails you the moment a new issue appears that a newcomer could tackle — even with AI help.
+**The solution:** A bot that watches GitHub repos and emails you within minutes when a new issue appears that a newcomer could tackle — even with AI help.
 
 An LLM reads each issue and asks: **does this give someone new to this repo a clear enough starting point that they and Claude Code could figure it out?**
 
@@ -34,7 +34,7 @@ Works on any public repo. No webhooks needed. Completely free.
 
 ## Quick Setup — 2 minutes
 
-No server, no terminal, no installs. GitHub runs it for you every 5 minutes and emails you when it finds something.
+No server, no terminal, no installs. GitHub runs it for you on a schedule and emails you when it finds something. Typically within 5–30 minutes of an issue being opened.
 
 ### 1. Fork this repo
 
@@ -102,7 +102,7 @@ A private repo where the bot posts notifications.
 
 1. Go to [github.com/settings/apps/new](https://github.com/settings/apps/new)
 2. **Name:** `issue-monitor-bot-YOURNAME` (must be globally unique)
-3. **Homepage URL:** `https://github.com/gracesmith6504/github-issue-monitor`
+3. **Homepage URL:** `https://github.com/YOUR-USERNAME/github-issue-monitor`
 4. **Webhook:** uncheck "Active"
 5. **Permissions** → **Repository permissions** → **Issues:** Read and write
 6. Click **Create GitHub App**, note the **App ID**
@@ -138,11 +138,16 @@ podman push quay.io/your-username/github-issue-monitor:latest
 oc new-project issue-monitor
 oc create secret generic issue-monitor-secret \
   --from-literal=MONITOR_TOKEN=ghp_... \
+  --from-literal=WATCH_REPOS=NVIDIA/OpenShell \
+  --from-literal=NOTIFY_REPO=your-username/my-issue-alerts \
   --from-literal=GITHUB_APP_ID=... \
   --from-literal=GITHUB_APP_INSTALLATION_ID=... \
   --from-file=GITHUB_APP_PRIVATE_KEY=/path/to/key.pem
-oc apply -f k8s/configmap.yaml
-oc apply -f k8s/deployment.yaml
+
+oc run issue-monitor \
+  --image=quay.io/your-username/github-issue-monitor:latest \
+  --env-from=secret/issue-monitor-secret \
+  --restart=Always
 ```
 
 ---
