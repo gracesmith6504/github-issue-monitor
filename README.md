@@ -26,7 +26,7 @@ Each notification tells you:
 | 🟠 | **LONG SHOT** | Very little direction. Real risk of getting stuck. Only if you're feeling adventurous. |
 | 🔴 | **NOT YET** | No clear entry point. Needs deep architectural knowledge. Skip this one. |
 
-You get notified on JUMP ON IT, GO FOR IT, and STRETCH. LONG SHOT and NOT YET are silently skipped.
+By default you get notified on JUMP ON IT, GO FOR IT, and STRETCH. LONG SHOT and NOT YET are silently skipped. You can adjust this with `MIN_VERDICT`.
 
 Works on any public repo. No webhooks needed. Completely free.
 
@@ -62,7 +62,7 @@ Click the **Fork** button at the top of this page. Make sure to tick **Copy the 
 
 That's it. Every 5 minutes GitHub checks your watched repos, analyzes new issues with an LLM, and creates a notification issue in your fork's Issues tab. You get an email because `github-actions[bot]` opens the issue, not you.
 
-> **Nothing showing up?** The repo you're watching might just not have had a new issue in the last 5 minutes — that's normal. You can also add busier repos like `golang/go` or `kubernetes/kubernetes` to `WATCH_REPOS` to see a notification faster. Issues that are already assigned or that the LLM rates as NOT YET or LONG SHOT are silently skipped.
+> **Nothing showing up?** The repo you're watching might just not have had a new issue in the last 5 minutes — that's normal. You can also add busier repos like `golang/go` or `kubernetes/kubernetes` to `WATCH_REPOS` to see a notification faster. Issues that are already assigned, have linked open PRs, carry skip labels (spike, refactor, etc.), or that the LLM rates below your MIN_VERDICT threshold are silently skipped.
 
 > **Want fewer notifications?** Add a `MIN_VERDICT` variable (same place as `WATCH_REPOS`) set to `GO FOR IT` or `JUMP ON IT`. You'll only get issues at that level or easier. Default is `STRETCH`.
 
@@ -155,11 +155,12 @@ oc run issue-monitor \
 ## How It Works
 
 1. Polls the GitHub Issues API for each repo you're watching, using a persistent `since` timestamp to track what's already been seen
-2. Filters out pull requests, assigned issues, issues with linked open PRs (someone is already working on it even without a formal assignee), and anything the LLM rates as LONG SHOT or NOT YET
-3. Catches two kinds of opportunity: new unassigned issues, and reclaimed issues (previously assigned, now abandoned)
+2. Filters out pull requests, assigned issues, issues with linked open PRs (someone is already working on it even without a formal assignee), and issues with skip labels (`spike`, `refactor`, `architecture`, `design`, `rfc`, `breaking-change`, `epic`, `state:pr-opened`) — these are enforced in Python before the LLM ever sees them
+3. Catches two kinds of opportunity: new unassigned issues, and reclaimed issues (previously assigned, then genuinely unassigned — verified via timeline events, not just re-updated)
 4. Checks labels — `good first issue` is an instant strong signal
 5. Sends the issue to an LLM (GitHub Models, free) which rates it on how approachable it is for a newcomer
-6. Creates a notification issue in your fork — GitHub emails you because the bot opens it, not you
+6. Skips anything below your `MIN_VERDICT` threshold (default: STRETCH)
+7. Creates a notification issue in your fork — GitHub emails you because the bot opens it, not you
 
 ## Costs
 
