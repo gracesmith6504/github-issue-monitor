@@ -25,16 +25,6 @@ APPROACHABLE_LABELS = {
     "help-wanted",
 }
 
-HARD_LABELS = {
-    "spike",
-    "refactor",
-    "architecture",
-    "design",
-    "rfc",
-    "breaking-change",
-    "epic",
-}
-
 SYSTEM_PROMPT = """You are assessing GitHub issues for someone who is new to this repository and has access to Claude Code (an AI coding assistant).
 
 The key question is NOT "is this issue easy?" and NOT "is this issue well-written?" It is: "could a newcomer who has never seen this codebase before actually complete this, with Claude Code's help?"
@@ -86,18 +76,11 @@ def analyze_issue(issue, token, model):
                 "It has been vetted as actionable by the maintainers and may have useful "
                 "comments or partial work from the previous attempt.")
 
-    hard_matched = [l for l in labels if l in HARD_LABELS]
-    if hard_matched:
-        logger.info(f"[{issue['repo']} #{issue['number']}] Has hard label: {hard_matched[0]}")
-        hard = (f"This issue is labeled '{hard_matched[0]}' — this typically requires deep codebase familiarity. "
-                "It should almost never be JUMP ON IT or GO FOR IT for a newcomer.")
-        hint = f"{hint} {hard}" if hint else hard
-
     if any(l in GOOD_FIRST_ISSUE_LABELS for l in labels):
         logger.info(f"[{issue['repo']} #{issue['number']}] Has good-first-issue label")
         gfi = "This issue is explicitly labeled 'good first issue' by the maintainers — they consider it approachable for newcomers."
         hint = f"{hint} {gfi}" if hint else gfi
-    elif not reclaimed and not hard_matched:
+    elif not reclaimed:
         matched = [l for l in labels if l in APPROACHABLE_LABELS]
         if matched:
             hint = f"This issue is labeled '{matched[0]}' — consider whether it gives a newcomer a clear starting point."

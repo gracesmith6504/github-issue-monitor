@@ -3,6 +3,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+SKIP_LABELS = {
+    "spike", "refactor", "architecture", "design", "rfc",
+    "breaking-change", "epic",
+    "state:pr-opened",
+}
+
 
 class Poller:
     def __init__(self, token):
@@ -16,7 +22,7 @@ class Poller:
         search_term = f"[{repo_name} #{number}]"
         url = "https://api.github.com/search/issues"
         params = {
-            "q": f'repo:{notify_repo} "{search_term}" in:title is:open',
+            "q": f'repo:{notify_repo} "{search_term}" in:title',
             "per_page": 1,
         }
         try:
@@ -27,6 +33,30 @@ class Poller:
             logger.warning(f"Dedup check failed: {e}")
         return False
 
+    def _was_recently_unassigned(self, repo, number, since):
+        url = f"https://api.github.com/repos/{repo}/issues/{number}/timeline"
+        headers = {**self.headers, "Accept": "application/vnd.github.mockingbird-preview+json"}
+        while url:
+            try:
+                resp = requests.get(url, headers=headers, params={"per_page": 100}, timeout=10)
+                if resp.status_code != 200:
+                    logger.warning(f"[{repo} #{number}] Timeline check for unassign failed: {resp.status_code}")
+                    return False
+                for event in resp.json():
+                    if event.get("event") == "unassigned":
+                        created = event.get("created_at", "")
+                        if created >= since:
+                            return True
+                url = None
+                for part in resp.headers.get("Link", "").split(","):
+                    if 'rel="next"' in part:
+                        url = part.split(";")[0].strip().strip("<>")
+                        break
+            except requests.RequestException as e:
+                logger.warning(f"[{repo} #{number}] Timeline check for unassign failed: {e}")
+                return False
+        return False
+
     def _has_linked_open_pr(self, repo, number):
         url = f"https://api.github.com/repos/{repo}/issues/{number}/timeline"
         headers = {**self.headers, "Accept": "application/vnd.github.mockingbird-preview+json"}
@@ -34,6 +64,7 @@ class Poller:
             try:
                 resp = requests.get(url, headers=headers, params={"per_page": 100}, timeout=10)
                 if resp.status_code != 200:
+                    logger.warning(f"[{repo} #{number}] Timeline API returned {resp.status_code} — skipping PR check")
                     return False
                 for event in resp.json():
                     if event.get("event") == "cross-referenced":
@@ -83,11 +114,23 @@ class Poller:
                     continue
 
                 number = issue.get("number")
+                label_names = {l.get("name", "").lower() for l in issue.get("labels", [])}
+                matched_skip = label_names & SKIP_LABELS
+                if matched_skip:
+                    logger.info(f"[{repo} #{number}] Skipping — has label: {', '.join(matched_skip)}")
+                    continue
+
                 if self._has_linked_open_pr(repo, number):
                     logger.info(f"[{repo} #{number}] Skipping — has linked open PR")
                     continue
 
                 already_notified = self._is_already_notified(number, repo_name, notify_repo)
+                if already_notified:
+                    if self._was_recently_unassigned(repo, number, since):
+                        logger.info(f"[{repo} #{number}] Reclaimed — was assigned then unassigned")
+                    else:
+                        logger.debug(f"[{repo} #{number}] Already notified, skipping")
+                        continue
 
                 issue_dict = {
                     "id": issue.get("id"),
