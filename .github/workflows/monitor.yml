@@ -30,5 +30,6 @@ jobs:
           LAST_CHECKED: ${{ vars.LAST_CHECKED }}
           NOTIFY_REPO: ${{ github.repository }}
           LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-4o' }}
+          MIN_VERDICT: ${{ vars.MIN_VERDICT || 'STRETCH' }}
           RUN_ONCE: "true"
         run: python -m app.main

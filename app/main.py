@@ -50,9 +50,12 @@ def run_once(config, poller, run_start):
                 continue
 
             verdict = analysis.get("verdict", "")
-            if verdict in ("LONG SHOT", "NOT YET"):
-                logger.info(f"[{issue['repo']} #{issue['number']}] Verdict: {verdict} — skipping notification")
-                continue
+            verdict_ranks = ["JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT", "NOT YET"]
+            min_verdict = config.get("min_verdict", "STRETCH")
+            if verdict in verdict_ranks and min_verdict in verdict_ranks:
+                if verdict_ranks.index(verdict) > verdict_ranks.index(min_verdict):
+                    logger.info(f"[{issue['repo']} #{issue['number']}] Verdict: {verdict} — below {min_verdict} threshold, skipping")
+                    continue
 
             if config.get("app_id"):
                 notifier.notify(issue, analysis, config["notify_repo"],
@@ -70,6 +73,7 @@ def main():
     logger.info(f"Watching repos: {', '.join(config['watch_repos'])}")
     logger.info(f"Notifications go to: {config['notify_repo']}")
     logger.info(f"LLM model: {config['llm_model']}")
+    logger.info(f"Min verdict: {config['min_verdict']}")
     logger.info(f"Checking issues since: {config['last_checked']}")
 
     poller = Poller(config["monitor_token"])

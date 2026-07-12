@@ -64,6 +64,8 @@ That's it. Every 5 minutes GitHub checks your watched repos, analyzes new issues
 
 > **Nothing showing up?** The repo you're watching might just not have had a new issue in the last 5 minutes — that's normal. You can also add busier repos like `golang/go` or `kubernetes/kubernetes` to `WATCH_REPOS` to see a notification faster. Issues that are already assigned or that the LLM rates as NOT YET or LONG SHOT are silently skipped.
 
+> **Want fewer notifications?** Add a `MIN_VERDICT` variable (same place as `WATCH_REPOS`) set to `GO FOR IT` or `JUMP ON IT`. You'll only get issues at that level or easier. Default is `STRETCH`.
+
 > **Watching a private repo?** Add a `MONITOR_TOKEN` secret with a GitHub PAT (classic, `repo` scope) so the monitor can access it.
 
 ---

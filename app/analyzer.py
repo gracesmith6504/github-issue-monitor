@@ -25,23 +25,46 @@ APPROACHABLE_LABELS = {
     "help-wanted",
 }
 
+HARD_LABELS = {
+    "spike",
+    "refactor",
+    "architecture",
+    "design",
+    "rfc",
+    "breaking-change",
+    "epic",
+}
+
 SYSTEM_PROMPT = """You are assessing GitHub issues for someone who is new to this repository and has access to Claude Code (an AI coding assistant).
 
-The key question is NOT "is this issue easy?" It is: "does this issue give a newcomer a clear enough starting point that they and Claude Code could figure it out?"
+The key question is NOT "is this issue easy?" and NOT "is this issue well-written?" It is: "could a newcomer who has never seen this codebase before actually complete this, with Claude Code's help?"
+
+A well-written issue with detailed requirements can still be impossible for a newcomer if it requires understanding how the codebase is structured, what patterns it follows, or how subsystems interact. Long, detailed issue descriptions often mean the work is HARDER, not easier — they describe complex problems that need complex solutions.
 
 Claude Code can help write code, explain unfamiliar syntax, navigate a codebase, and implement fixes. It cannot substitute for architectural knowledge that isn't written down anywhere, or judgment calls that require months of context on the project.
 
-Assess the issue on two things:
-1. STARTING POINT — does the issue tell you WHERE to look? (specific file, function, error message, reproduction steps, or a clear description of what's wrong)
-2. SOLVABILITY WITH AI — once you've found the starting point, is the fix something a newcomer + Claude Code could implement? Or does it require deep architectural judgment that AI can't substitute for?
+Assess the issue on THREE things:
+1. STARTING POINT — does the issue tell you WHERE to look? (specific file, function, error message, reproduction steps)
+2. SCOPE — is the fix contained to one file or a small area, or does it touch multiple subsystems, require design decisions, or need consistency with existing patterns across the codebase?
+3. CODEBASE FAMILIARITY — could someone who has never read this codebase implement the fix? Or would they need to understand existing conventions, internal APIs, or how components interact?
+
+Red flags that should push the verdict DOWN (toward STRETCH, LONG SHOT, or NOT YET):
+- Spikes, RFCs, or design proposals — these are exploratory work, not implementation tasks
+- Refactors — require understanding the current patterns to change them safely
+- Issues that touch 3+ files or subsystems
+- Issues that say "consistent with existing X" or "follow the pattern of Y" — a newcomer doesn't know what X or Y look like
+- New subsystems or features that require design decisions (what API shape, what error handling strategy, what data model)
+- Issues with words like "contract", "harness", "framework", "abstraction", "lifecycle"
 
 Use these five verdicts:
 
-- "JUMP ON IT": Clear starting point (file/function/error mentioned), straightforward fix. You and Claude will nail this. Claim it now before someone else does.
-- "GO FOR IT": Clear starting point AND the fix is implementable without deep security/protocol/architectural expertise. Claude Code can guide you through it. Knowing which folder or module is involved is NOT enough for GO FOR IT — you also need to know what to actually change. Will take effort but very doable.
-- "STRETCH": Starting point is vague but you could begin investigating by reading the code with Claude — exploring the relevant module, tracing a call stack, reading tests. The issue describes the problem clearly enough that you'd know what to look at. Worth attempting if you have time.
-- "LONG SHOT": Very little direction. Even finding the starting point requires running the system in production conditions, profiling tools, or deep expertise to know where to look. Watch for phrases like "cannot pinpoint it", "could be anywhere", "needs profiling", "we don't know why" — these mean there's no codebase entry point for a newcomer. Claude might help you understand things you find but can't find them for you. Real risk of getting stuck for days.
-- "NOT YET": No clear entry point. Requires architectural knowledge or cross-system judgment that Claude can't substitute for. Skip this one.
+- "JUMP ON IT": Clear starting point, small scope (1-2 files), no codebase familiarity needed. Fix a typo, update a config, add a simple flag. Claim it now.
+- "GO FOR IT": Clear starting point, moderate scope, AND the fix is self-contained — you don't need to understand how the rest of the codebase works to make the change. A bug with reproduction steps and an obvious fix location. NOT for refactors, spikes, or anything requiring design decisions.
+- "STRETCH": The issue is well-described but the fix requires either reading significant existing code to understand patterns, touching multiple files, or making judgment calls about implementation approach. Worth attempting with time and patience.
+- "LONG SHOT": Requires deep expertise, production environment access, or understanding the full architecture. Real risk of getting stuck for days.
+- "NOT YET": Architectural work, cross-system design, or requires months of project context. Skip this one.
+
+When in doubt between two verdicts, pick the LOWER one. A newcomer surprised by an easier-than-expected issue is fine. A newcomer stuck on a harder-than-expected issue wastes days and gets discouraged.
 
 Return a JSON object with these exact fields:
 - "summary": 2-3 sentence plain English summary of what the issue is about
@@ -63,11 +86,18 @@ def analyze_issue(issue, token, model):
                 "It has been vetted as actionable by the maintainers and may have useful "
                 "comments or partial work from the previous attempt.")
 
+    hard_matched = [l for l in labels if l in HARD_LABELS]
+    if hard_matched:
+        logger.info(f"[{issue['repo']} #{issue['number']}] Has hard label: {hard_matched[0]}")
+        hard = (f"This issue is labeled '{hard_matched[0]}' — this typically requires deep codebase familiarity. "
+                "It should almost never be JUMP ON IT or GO FOR IT for a newcomer.")
+        hint = f"{hint} {hard}" if hint else hard
+
     if any(l in GOOD_FIRST_ISSUE_LABELS for l in labels):
         logger.info(f"[{issue['repo']} #{issue['number']}] Has good-first-issue label")
         gfi = "This issue is explicitly labeled 'good first issue' by the maintainers — they consider it approachable for newcomers."
         hint = f"{hint} {gfi}" if hint else gfi
-    elif not reclaimed:
+    elif not reclaimed and not hard_matched:
         matched = [l for l in labels if l in APPROACHABLE_LABELS]
         if matched:
             hint = f"This issue is labeled '{matched[0]}' — consider whether it gives a newcomer a clear starting point."
