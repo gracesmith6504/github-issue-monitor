@@ -1,5 +1,6 @@
 import requests
 import logging
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class Poller:
             return []
 
     def _scan_timeline(self, repo, number, since):
-        result = {"has_open_pr": False, "has_linked_commit": False, "abandoned_signals": []}
+        result = {"has_open_pr": False, "has_linked_commit": False, "has_fork_activity": False, "abandoned_signals": []}
         url = f"https://api.github.com/repos/{repo}/issues/{number}/timeline"
         headers = {**self.headers, "Accept": "application/vnd.github.mockingbird-preview+json"}
         while url:
@@ -75,6 +76,13 @@ class Poller:
                             elif src_issue.get("state") == "closed" and not pr.get("merged_at"):
                                 if src_issue.get("updated_at", "") >= since:
                                     result["abandoned_signals"].append("closed-pr")
+                        else:
+                            src_repo = event.get("source", {}).get("issue", {}).get("repository", {}).get("full_name", "")
+                            if src_repo and src_repo != repo and src_repo.split("/")[-1] == repo.split("/")[-1]:
+                                created = event.get("created_at", "")
+                                cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+                                if created >= cutoff:
+                                    result["has_fork_activity"] = True
 
                     elif event_type == "committed":
                         result["has_linked_commit"] = True
@@ -140,6 +148,10 @@ class Poller:
 
                 if timeline["has_open_pr"]:
                     logger.info(f"[{repo} #{number}] Skipping — has linked open PR")
+                    continue
+
+                if timeline["has_fork_activity"]:
+                    logger.info(f"[{repo} #{number}] Skipping — referenced from a fork (likely in progress)")
                     continue
 
                 if timeline["has_linked_commit"]:
