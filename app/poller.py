@@ -7,7 +7,10 @@ SKIP_LABELS = {
     "spike", "refactor", "architecture", "design", "rfc",
     "breaking-change", "epic",
     "state:pr-opened",
+    "state:in-progress",
 }
+
+RECLAIMED_LABELS = {"state:in-progress", "state:pr-opened"}
 
 
 class Poller:
@@ -19,7 +22,8 @@ class Poller:
         }
 
     def _is_already_notified(self, number, repo, notify_repo):
-        search_term = f"[{repo} #{number}]"
+        repo_name = repo.split("/")[-1]
+        search_term = f"[{repo_name} #{number}]"
         url = "https://api.github.com/search/issues"
         params = {
             "q": f'repo:{notify_repo} "{search_term}" in:title',
@@ -33,45 +37,38 @@ class Poller:
             logger.warning(f"Dedup check failed: {e}")
         return False
 
-    def _was_recently_unassigned(self, repo, number, since):
+    def _scan_timeline(self, repo, number, since):
+        result = {"has_open_pr": False, "abandoned_signals": []}
         url = f"https://api.github.com/repos/{repo}/issues/{number}/timeline"
         headers = {**self.headers, "Accept": "application/vnd.github.mockingbird-preview+json"}
         while url:
             try:
                 resp = requests.get(url, headers=headers, params={"per_page": 100}, timeout=10)
                 if resp.status_code != 200:
-                    logger.warning(f"[{repo} #{number}] Timeline check for unassign failed: {resp.status_code}")
-                    return False
+                    logger.warning(f"[{repo} #{number}] Timeline API returned {resp.status_code}")
+                    return result
                 for event in resp.json():
-                    if event.get("event") == "unassigned":
-                        created = event.get("created_at", "")
-                        if created >= since:
-                            return True
-                url = None
-                for part in resp.headers.get("Link", "").split(","):
-                    if 'rel="next"' in part:
-                        url = part.split(";")[0].strip().strip("<>")
-                        break
-            except requests.RequestException as e:
-                logger.warning(f"[{repo} #{number}] Timeline check for unassign failed: {e}")
-                return False
-        return False
+                    event_type = event.get("event")
 
-    def _has_linked_open_pr(self, repo, number):
-        url = f"https://api.github.com/repos/{repo}/issues/{number}/timeline"
-        headers = {**self.headers, "Accept": "application/vnd.github.mockingbird-preview+json"}
-        while url:
-            try:
-                resp = requests.get(url, headers=headers, params={"per_page": 100}, timeout=10)
-                if resp.status_code != 200:
-                    logger.warning(f"[{repo} #{number}] Timeline API returned {resp.status_code} — skipping PR check")
-                    return False
-                for event in resp.json():
-                    if event.get("event") == "cross-referenced":
-                        source = event.get("source", {})
-                        src_issue = source.get("issue", {})
-                        if src_issue.get("pull_request") and src_issue.get("state") == "open":
-                            return True
+                    if event_type == "cross-referenced":
+                        src_issue = event.get("source", {}).get("issue", {})
+                        pr = src_issue.get("pull_request")
+                        if pr:
+                            if src_issue.get("state") == "open":
+                                result["has_open_pr"] = True
+                            elif src_issue.get("state") == "closed" and not pr.get("merged_at"):
+                                if src_issue.get("updated_at", "") >= since:
+                                    result["abandoned_signals"].append("closed-pr")
+
+                    elif event_type == "unassigned":
+                        if event.get("created_at", "") >= since:
+                            result["abandoned_signals"].append("unassigned")
+
+                    elif event_type == "unlabeled":
+                        label_name = event.get("label", {}).get("name", "")
+                        if label_name in RECLAIMED_LABELS and event.get("created_at", "") >= since:
+                            result["abandoned_signals"].append(f"removed-label:{label_name}")
+
                 url = None
                 for part in resp.headers.get("Link", "").split(","):
                     if 'rel="next"' in part:
@@ -79,8 +76,8 @@ class Poller:
                         break
             except requests.RequestException as e:
                 logger.warning(f"[{repo} #{number}] Timeline check failed: {e}")
-                return False
-        return False
+                return result
+        return result
 
     def poll(self, repo, since, notify_repo, limit=5):
         url = f"https://api.github.com/repos/{repo}/issues"
@@ -120,14 +117,16 @@ class Poller:
                     logger.info(f"[{repo} #{number}] Skipping — has label: {', '.join(matched_skip)}")
                     continue
 
-                if self._has_linked_open_pr(repo, number):
+                timeline = self._scan_timeline(repo, number, since)
+
+                if timeline["has_open_pr"]:
                     logger.info(f"[{repo} #{number}] Skipping — has linked open PR")
                     continue
 
                 already_notified = self._is_already_notified(number, repo, notify_repo)
                 if already_notified:
-                    if self._was_recently_unassigned(repo, number, since):
-                        logger.info(f"[{repo} #{number}] Reclaimed — was assigned then unassigned")
+                    if timeline["abandoned_signals"]:
+                        logger.info(f"[{repo} #{number}] Reclaimed — signals: {', '.join(timeline['abandoned_signals'])}")
                     else:
                         logger.debug(f"[{repo} #{number}] Already notified, skipping")
                         continue
@@ -143,7 +142,8 @@ class Poller:
                     "repo_name": repo_name,
                 }
                 if already_notified:
-                    issue_dict["trigger"] = "unassigned"
+                    issue_dict["trigger"] = "reclaimed"
+                    issue_dict["reclaimed_signals"] = timeline["abandoned_signals"]
 
                 new_issues.append(issue_dict)
 

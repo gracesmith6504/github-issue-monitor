@@ -50,7 +50,7 @@ def _post_notification(issue, analysis, notify_repo, token):
     verdict = analysis.get("verdict", "STRETCH")
     label = VERDICT_TO_LABEL.get(verdict, "stretch")
     emoji = VERDICT_EMOJI.get(verdict, "🟡")
-    reclaimed = issue.get("trigger") == "unassigned"
+    reclaimed = issue.get("trigger") == "reclaimed"
 
     prefix = "🔄 " if reclaimed else ""
     if reclaimed:
@@ -60,10 +60,18 @@ def _post_notification(issue, analysis, notify_repo, token):
     if len(title) > 256:
         title = title[:253] + "..."
 
-    reclaimed_note = (
-        "\n> Previously claimed and abandoned — check the comments for context or partial work.\n"
-        if reclaimed else ""
-    )
+    reclaimed_note = ""
+    if reclaimed:
+        signals = issue.get("reclaimed_signals", [])
+        details = []
+        if any(s == "closed-pr" for s in signals):
+            details.append("A linked PR was closed without being merged.")
+        if any(s == "unassigned" for s in signals):
+            details.append("A contributor was assigned then removed.")
+        if any(s.startswith("removed-label:") for s in signals):
+            details.append("Work-in-progress markers were removed.")
+        note = " ".join(details) if details else "Previously claimed and abandoned."
+        reclaimed_note = f"\n> {note} Check the comments for context or partial work.\n"
 
     skills = ', '.join(analysis.get('skills_needed', ['unknown']))
 

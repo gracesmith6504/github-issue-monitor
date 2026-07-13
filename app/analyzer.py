@@ -75,14 +75,23 @@ Return ONLY the JSON object, no markdown fences or extra text."""
 
 
 def analyze_issue(issue, token, model):
-    reclaimed = issue.get("trigger") == "unassigned"
+    reclaimed = issue.get("trigger") == "reclaimed"
     labels = [l.lower() for l in issue.get("labels", [])]
 
     hint = None
     if reclaimed:
-        hint = ("This issue was previously assigned to a contributor who abandoned it. "
-                "It has been vetted as actionable by the maintainers and may have useful "
-                "comments or partial work from the previous attempt.")
+        signals = issue.get("reclaimed_signals", [])
+        parts = []
+        if any(s == "closed-pr" for s in signals):
+            parts.append("A linked pull request was closed without being merged — there may be partial work or review feedback from the abandoned PR.")
+        if any(s == "unassigned" for s in signals):
+            parts.append("A contributor was previously assigned but removed.")
+        if any(s.startswith("removed-label:") for s in signals):
+            parts.append("Work-in-progress markers were removed, suggesting work was started but not completed.")
+        if not parts:
+            parts.append("This issue was previously claimed and abandoned.")
+        parts.append("Check the comments for useful context.")
+        hint = " ".join(parts)
 
     if any(l in GOOD_FIRST_ISSUE_LABELS for l in labels):
         logger.info(f"[{issue['repo']} #{issue['number']}] Has good-first-issue label")
