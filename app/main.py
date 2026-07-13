@@ -37,11 +37,13 @@ def _update_last_checked(token, notify_repo, run_start):
 
 def run_once(config, poller, run_start):
     for repo in config["watch_repos"]:
-        new_issues = poller.poll(repo, config["last_checked"], config["notify_repo"])
+        new_issues = poller.poll(repo, config["last_checked"], config["notify_repo"],
+                                 limit=config["max_issues_per_repo"])
 
         for i, issue in enumerate(new_issues):
             if i > 0:
-                time.sleep(7)
+                # Rate-limit delay for GitHub Models API
+                time.sleep(config["analysis_delay"])
             logger.info(f"Analyzing: {issue['repo']} #{issue['number']} — {issue['title']}")
 
             analysis = analyze_issue(issue, config["monitor_token"], config["llm_model"])

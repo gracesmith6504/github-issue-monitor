@@ -29,6 +29,8 @@ def load_config():
     poll_interval = int(os.environ.get("POLL_INTERVAL", "30"))
     llm_model = os.environ.get("LLM_MODEL", "gpt-4o")
     min_verdict = os.environ.get("MIN_VERDICT", "STRETCH").upper()
+    max_issues_per_repo = int(os.environ.get("MAX_ISSUES_PER_REPO", "5"))
+    analysis_delay = int(os.environ.get("ANALYSIS_DELAY", "7"))
 
     last_checked_raw = os.environ.get("LAST_CHECKED")
     if last_checked_raw:
@@ -45,6 +47,8 @@ def load_config():
         "llm_model": llm_model,
         "min_verdict": min_verdict,
         "last_checked": last_checked,
+        "max_issues_per_repo": max_issues_per_repo,
+        "analysis_delay": analysis_delay,
     }
 
     app_id = os.environ.get("GITHUB_APP_ID")

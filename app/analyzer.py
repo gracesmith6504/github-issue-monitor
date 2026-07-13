@@ -1,4 +1,5 @@
 import json
+import time
 import logging
 from openai import OpenAI
 
@@ -149,25 +150,32 @@ Labels: {', '.join(issue['labels']) if issue['labels'] else 'none'}
 Comments (most recent):
 {comments_section}"""
 
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.3,
-            response_format={"type": "json_object"},
-        )
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.3,
+                response_format={"type": "json_object"},
+            )
 
-        content = response.choices[0].message.content.strip()
-        analysis = json.loads(content)
-        logger.info(f"[{issue['repo']} #{issue['number']}] Verdict: {analysis.get('verdict')}")
-        return analysis
+            content = response.choices[0].message.content.strip()
+            analysis = json.loads(content)
+            logger.info(f"[{issue['repo']} #{issue['number']}] Verdict: {analysis.get('verdict')}")
+            return analysis
 
-    except json.JSONDecodeError as e:
-        logger.error(f"[{issue['repo']} #{issue['number']}] Failed to parse LLM response: {e}")
-        return None
-    except Exception as e:
-        logger.error(f"[{issue['repo']} #{issue['number']}] LLM analysis failed: {e}")
-        return None
+        except json.JSONDecodeError as e:
+            logger.error(f"[{issue['repo']} #{issue['number']}] Failed to parse LLM response: {e}")
+            return None
+        except Exception as e:
+            if attempt < max_retries:
+                delay = 5 * (3 ** attempt)
+                logger.warning(f"[{issue['repo']} #{issue['number']}] LLM failed (attempt {attempt + 1}/{max_retries + 1}), retrying in {delay}s: {e}")
+                time.sleep(delay)
+            else:
+                logger.error(f"[{issue['repo']} #{issue['number']}] LLM analysis failed after {max_retries + 1} attempts: {e}")
+                return None
