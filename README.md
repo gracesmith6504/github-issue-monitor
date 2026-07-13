@@ -66,7 +66,7 @@ Click the **Fork** button at the top of this page. Make sure to tick **Copy the 
 
 That's it. Every 5 minutes GitHub checks your watched repos, analyzes new issues with an LLM, and creates a notification issue in your fork's Issues tab. You get an email because `github-actions[bot]` opens the issue, not you.
 
-> **Nothing showing up?** The repo you're watching might just not have had a new issue in the last 5 minutes — that's normal. You can also add busier repos like `golang/go` or `kubernetes/kubernetes` to `WATCH_REPOS` to see a notification faster. Issues that are already assigned, have linked open PRs or commits, have been claimed in comments, carry skip labels (spike, refactor, etc.), or that the LLM rates below your MIN_VERDICT threshold are silently skipped.
+> **Nothing showing up?** The repo you're watching might just not have had a new issue in the last 5 minutes — that's normal. You can also add busier repos like `golang/go` or `kubernetes/kubernetes` to `WATCH_REPOS` to see a notification faster. Issues that are already assigned, have linked open PRs or commits, have recent fork activity (someone working on a fix), have been claimed in comments, carry skip labels (spike, refactor, etc.), or that the LLM rates below your MIN_VERDICT threshold are silently skipped.
 
 > **Want fewer notifications?** Add a `MIN_VERDICT` variable (same place as `WATCH_REPOS`) set to `GO FOR IT` or `JUMP ON IT`. You'll only get issues at that level or easier. Default is `STRETCH`.
 
@@ -159,11 +159,11 @@ oc run issue-monitor \
 ## How It Works
 
 1. Polls the GitHub Issues API for each repo you're watching, using a persistent `since` timestamp to track what's already been seen
-2. Filters out pull requests, assigned issues, issues with linked open PRs or linked commits (someone is already working on it even without a formal assignee), and issues with skip labels (`spike`, `refactor`, `architecture`, `design`, `rfc`, `breaking-change`, `epic`, `state:pr-opened`, `state:in-progress`) — these are enforced in Python before the LLM ever sees them
-3. Catches two kinds of opportunity: new unassigned issues, and reclaimed issues — detected via three signals: contributor unassigned, linked PR closed without merge, or work-in-progress labels (`state:in-progress`, `state:pr-opened`) removed
+2. Filters out pull requests, assigned issues, issues with linked open PRs or linked commits, issues referenced from a fork in the last 7 days (someone is likely working on a fix before opening a PR), and issues with skip labels (`spike`, `refactor`, `architecture`, `design`, `rfc`, `breaking-change`, `epic`, `state:pr-opened`, `state:in-progress`) — these are enforced in Python before the LLM ever sees them
+3. Catches two kinds of opportunity: new unassigned issues, and reclaimed issues — detected via three signals: contributor unassigned, linked PR closed without merge, or work-in-progress labels (`state:in-progress`, `state:pr-opened`) removed. Fork references older than 7 days are ignored (likely abandoned).
 4. Checks labels — `good first issue` is an instant strong signal
-5. Sends the issue and its recent comments to GPT-4o via GitHub Models (free, configurable via `LLM_MODEL` env var) which assesses it on two axes: how clear the starting point is, and whether the fix is something a newcomer with Claude Code could implement
-6. Skips claimed issues and anything below your `MIN_VERDICT` threshold (default: STRETCH)
+5. Sends the issue and its recent comments to GPT-4o via GitHub Models (free, configurable via `LLM_MODEL` env var) which assesses it on three axes: how clear the starting point is, whether the scope is contained, and whether the fix requires codebase familiarity a newcomer wouldn't have
+6. Skips issues claimed in comments (detected by the LLM) and anything below your `MIN_VERDICT` threshold (default: STRETCH)
 7. Creates a notification issue in your fork — GitHub emails you because the bot opens it, not you
 
 ## Costs
