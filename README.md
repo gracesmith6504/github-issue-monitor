@@ -162,13 +162,13 @@ oc run issue-monitor \
 2. Filters out pull requests, assigned issues, issues with linked open PRs or linked commits (someone is already working on it even without a formal assignee), and issues with skip labels (`spike`, `refactor`, `architecture`, `design`, `rfc`, `breaking-change`, `epic`, `state:pr-opened`, `state:in-progress`) — these are enforced in Python before the LLM ever sees them
 3. Catches two kinds of opportunity: new unassigned issues, and reclaimed issues — detected via three signals: contributor unassigned, linked PR closed without merge, or work-in-progress labels (`state:in-progress`, `state:pr-opened`) removed
 4. Checks labels — `good first issue` is an instant strong signal
-5. Sends the issue and its recent comments to an LLM (GitHub Models, free) which rates it on how approachable it is for a newcomer and checks whether someone has already claimed it in the comments (e.g. "I'll work on this")
+5. Sends the issue and its recent comments to GPT-4o via GitHub Models (free, configurable via `LLM_MODEL` env var) which assesses it on two axes: how clear the starting point is, and whether the fix is something a newcomer with Claude Code could implement
 6. Skips claimed issues and anything below your `MIN_VERDICT` threshold (default: STRETCH)
 7. Creates a notification issue in your fork — GitHub emails you because the bot opens it, not you
 
 ## Costs
 
-**Free.** GitHub API, GitHub Models LLM, and GitHub Actions are all free for public repos.
+**Free.** GitHub API, GitHub Models LLM, and GitHub Actions are all free for public repos. GitHub Models has rate limits — if you watch many busy repos you may hit them, but for a handful of repos it's not an issue.
 
 ## Troubleshooting
 
