@@ -2,7 +2,7 @@
 
 A bot that emails you newcomer-friendly open source issues before they get claimed.
 
-I tried GitHub's Watch notifications first but my inbox got buried in noise. Then I wrote a Claude Code skill to scan for issues, but I'd forget to run it and only check once a day. By then the good ones were already claimed.
+I tried GitHub's Watch notifications first but my inbox got spammed. Then I wrote a Claude Code skill to scan for issues, but I'd forget to run it and only check once a day. By then the good ones were already claimed.
 
 So I built a monitor that watches repos for new issues, uses an LLM to rate how approachable each one is for a newcomer, and emails me before anyone else claims it.
 
