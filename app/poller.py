@@ -54,7 +54,7 @@ class Poller:
             return []
 
     def _scan_timeline(self, repo, number, since):
-        result = {"has_open_pr": False, "abandoned_signals": []}
+        result = {"has_open_pr": False, "has_linked_commit": False, "abandoned_signals": []}
         url = f"https://api.github.com/repos/{repo}/issues/{number}/timeline"
         headers = {**self.headers, "Accept": "application/vnd.github.mockingbird-preview+json"}
         while url:
@@ -75,6 +75,9 @@ class Poller:
                             elif src_issue.get("state") == "closed" and not pr.get("merged_at"):
                                 if src_issue.get("updated_at", "") >= since:
                                     result["abandoned_signals"].append("closed-pr")
+
+                    elif event_type == "committed":
+                        result["has_linked_commit"] = True
 
                     elif event_type == "unassigned":
                         if event.get("created_at", "") >= since:
@@ -137,6 +140,10 @@ class Poller:
 
                 if timeline["has_open_pr"]:
                     logger.info(f"[{repo} #{number}] Skipping — has linked open PR")
+                    continue
+
+                if timeline["has_linked_commit"]:
+                    logger.info(f"[{repo} #{number}] Skipping — has linked commit")
                     continue
 
                 already_notified = self._is_already_notified(number, repo, notify_repo)
