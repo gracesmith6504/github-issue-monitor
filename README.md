@@ -10,7 +10,7 @@ This is what the email looks like:
 
 ![Email notification example](docs/email-example.png)
 
-It also watches for **reclaimed issues** — previously assigned but then abandoned. These show up with `[RECLAIMED]` in the subject line.
+It also watches for **reclaimed issues** — previously claimed but then abandoned (detected via unassignment, closed PRs without merge, or removed work-in-progress labels). These show up with `[RECLAIMED]` in the subject line.
 
 Each notification tells you:
 - A plain English summary of what the issue is about
@@ -62,7 +62,7 @@ Click the **Fork** button at the top of this page. Make sure to tick **Copy the 
 
 That's it. Every 5 minutes GitHub checks your watched repos, analyzes new issues with an LLM, and creates a notification issue in your fork's Issues tab. You get an email because `github-actions[bot]` opens the issue, not you.
 
-> **Nothing showing up?** The repo you're watching might just not have had a new issue in the last 5 minutes — that's normal. You can also add busier repos like `golang/go` or `kubernetes/kubernetes` to `WATCH_REPOS` to see a notification faster. Issues that are already assigned, have linked open PRs, carry skip labels (spike, refactor, etc.), or that the LLM rates below your MIN_VERDICT threshold are silently skipped.
+> **Nothing showing up?** The repo you're watching might just not have had a new issue in the last 5 minutes — that's normal. You can also add busier repos like `golang/go` or `kubernetes/kubernetes` to `WATCH_REPOS` to see a notification faster. Issues that are already assigned, have linked open PRs or commits, have been claimed in comments, carry skip labels (spike, refactor, etc.), or that the LLM rates below your MIN_VERDICT threshold are silently skipped.
 
 > **Want fewer notifications?** Add a `MIN_VERDICT` variable (same place as `WATCH_REPOS`) set to `GO FOR IT` or `JUMP ON IT`. You'll only get issues at that level or easier. Default is `STRETCH`.
 
@@ -155,11 +155,11 @@ oc run issue-monitor \
 ## How It Works
 
 1. Polls the GitHub Issues API for each repo you're watching, using a persistent `since` timestamp to track what's already been seen
-2. Filters out pull requests, assigned issues, issues with linked open PRs (someone is already working on it even without a formal assignee), and issues with skip labels (`spike`, `refactor`, `architecture`, `design`, `rfc`, `breaking-change`, `epic`, `state:pr-opened`) — these are enforced in Python before the LLM ever sees them
-3. Catches two kinds of opportunity: new unassigned issues, and reclaimed issues (previously assigned, then genuinely unassigned — verified via timeline events, not just re-updated)
+2. Filters out pull requests, assigned issues, issues with linked open PRs or linked commits (someone is already working on it even without a formal assignee), and issues with skip labels (`spike`, `refactor`, `architecture`, `design`, `rfc`, `breaking-change`, `epic`, `state:pr-opened`, `state:in-progress`) — these are enforced in Python before the LLM ever sees them
+3. Catches two kinds of opportunity: new unassigned issues, and reclaimed issues — detected via three signals: contributor unassigned, linked PR closed without merge, or work-in-progress labels (`state:in-progress`, `state:pr-opened`) removed
 4. Checks labels — `good first issue` is an instant strong signal
-5. Sends the issue to an LLM (GitHub Models, free) which rates it on how approachable it is for a newcomer
-6. Skips anything below your `MIN_VERDICT` threshold (default: STRETCH)
+5. Sends the issue and its recent comments to an LLM (GitHub Models, free) which rates it on how approachable it is for a newcomer and checks whether someone has already claimed it in the comments (e.g. "I'll work on this")
+6. Skips claimed issues and anything below your `MIN_VERDICT` threshold (default: STRETCH)
 7. Creates a notification issue in your fork — GitHub emails you because the bot opens it, not you
 
 ## Costs
