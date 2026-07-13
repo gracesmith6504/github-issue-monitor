@@ -64,12 +64,22 @@ Use these five verdicts:
 
 When in doubt between two verdicts, pick the LOWER one. A newcomer surprised by an easier-than-expected issue is fine. A newcomer stuck on a harder-than-expected issue wastes days and gets discouraged.
 
+Additionally, determine whether someone has already claimed this issue by reading the comments. Look for signals like:
+- Someone saying "I'll work on this", "I would like to work on this", "I'll take this", "working on a fix"
+- A maintainer approving a vouch, assigning work, or saying "go ahead"
+- Someone posting an implementation plan or saying they've started
+
+If someone has clearly claimed the issue, set "claimed" to true.
+If comments are just discussion, questions, troubleshooting, or "I'll take a look", set "claimed" to false.
+When there are no comments, set "claimed" to false.
+
 Return a JSON object with these exact fields:
 - "summary": 2-3 sentence plain English summary of what the issue is about
 - "fix_description": What the fix likely involves — be specific about files/functions if the issue mentions them
 - "skills_needed": Skills needed to implement the FIX, not skills shown in the issue text (e.g. ["Rust", "SSH internals", "async/await"]). Identify the language the fix will be written in (which may differ from code samples in the issue body like reproduction scripts) and the domain knowledge required.
 - "verdict": One of "JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT", "NOT YET"
 - "verdict_reason": One sentence explaining the verdict based on what's specific to this issue — what the starting point is (or isn't), what expertise is needed, what's vague. Do NOT write generic lines like "Claude Code can help" — that applies to every issue and adds nothing.
+- "claimed": true if someone has claimed this issue in the comments, false otherwise
 
 Return ONLY the JSON object, no markdown fences or extra text."""
 
@@ -113,6 +123,15 @@ def _llm_analyze(issue, token, model, hint):
 
     label_note = f"\nNote: {hint}\n" if hint else ""
 
+    comments = issue.get("comments", [])
+    if comments:
+        comment_lines = []
+        for c in comments:
+            comment_lines.append(f"@{c['user']}: {c['body']}")
+        comments_section = "\n".join(comment_lines)
+    else:
+        comments_section = "(no comments)"
+
     user_prompt = f"""Issue from {issue['repo']}:
 
 Title: {issue['title']}
@@ -121,7 +140,9 @@ Body:
 {issue['body'][:3000] if issue['body'] else '(no description provided)'}
 
 Labels: {', '.join(issue['labels']) if issue['labels'] else 'none'}
-{label_note}"""
+{label_note}
+Comments (most recent):
+{comments_section}"""
 
     try:
         response = client.chat.completions.create(

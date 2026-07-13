@@ -37,6 +37,22 @@ class Poller:
             logger.warning(f"Dedup check failed: {e}")
         return False
 
+    def _fetch_recent_comments(self, repo, number, limit=10):
+        url = f"https://api.github.com/repos/{repo}/issues/{number}/comments"
+        params = {"per_page": limit, "direction": "desc"}
+        try:
+            resp = requests.get(url, headers=self.headers, params=params, timeout=10)
+            if resp.status_code != 200:
+                return []
+            return [
+                {"user": c.get("user", {}).get("login", "unknown"),
+                 "body": (c.get("body") or "")[:500],
+                 "created_at": c.get("created_at", "")}
+                for c in resp.json()
+            ]
+        except requests.RequestException:
+            return []
+
     def _scan_timeline(self, repo, number, since):
         result = {"has_open_pr": False, "abandoned_signals": []}
         url = f"https://api.github.com/repos/{repo}/issues/{number}/timeline"
@@ -131,6 +147,8 @@ class Poller:
                         logger.debug(f"[{repo} #{number}] Already notified, skipping")
                         continue
 
+                comments = self._fetch_recent_comments(repo, number)
+
                 issue_dict = {
                     "id": issue.get("id"),
                     "number": number,
@@ -140,6 +158,7 @@ class Poller:
                     "labels": [l.get("name") for l in issue.get("labels", [])],
                     "repo": repo,
                     "repo_name": repo_name,
+                    "comments": comments,
                 }
                 if already_notified:
                     issue_dict["trigger"] = "reclaimed"

@@ -49,6 +49,10 @@ def run_once(config, poller, run_start):
                 logger.warning(f"Skipping {issue['repo']} #{issue['number']} — analysis failed")
                 continue
 
+            if analysis.get("claimed"):
+                logger.info(f"[{issue['repo']} #{issue['number']}] Skipping — claimed in comments")
+                continue
+
             verdict = analysis.get("verdict", "")
             verdict_ranks = ["JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT", "NOT YET"]
             min_verdict = config.get("min_verdict", "STRETCH")
