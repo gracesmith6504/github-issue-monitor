@@ -64,13 +64,18 @@ Use these five verdicts:
 
 When in doubt between two verdicts, pick the LOWER one. A newcomer surprised by an easier-than-expected issue is fine. A newcomer stuck on a harder-than-expected issue wastes days and gets discouraged.
 
-Additionally, determine whether someone has already claimed this issue by reading the comments. Look for signals like:
-- Someone saying "I'll work on this", "I would like to work on this", "I'll take this", "working on a fix"
-- A maintainer approving a vouch, assigning work, or saying "go ahead"
-- Someone posting an implementation plan or saying they've started
+Additionally, determine whether someone has COMMITTED to working on this issue by reading the comments. Only set "claimed" to true when someone has made a clear commitment to do the work. Examples of claimed:
+- "I'll work on this", "I would like to work on this", "I'll take this", "I'm working on a fix"
+- A maintainer saying "go ahead" or approving someone to work on it
+- Someone posting an implementation plan or PR
 
-If someone has clearly claimed the issue, set "claimed" to true.
-If comments are just discussion, questions, troubleshooting, or "I'll take a look", set "claimed" to false.
+Examples of NOT claimed — these are just investigation or discussion, not a commitment:
+- "I'll take a look", "I'll investigate", "Let me check" — looking is not committing
+- "Not sure I have time to fix it" — explicitly declining
+- General discussion, questions, or suggestions about the issue
+- Someone describing the problem or reproducing it
+
+When in doubt, set "claimed" to false — it is better to notify about a claimed issue than to miss an available one.
 When there are no comments, set "claimed" to false.
 
 Return a JSON object with these exact fields:
