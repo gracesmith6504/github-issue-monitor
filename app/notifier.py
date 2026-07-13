@@ -41,36 +41,11 @@ def _get_app_token(app_id, private_key, installation_id):
     return resp.json()["token"]
 
 
-def _already_notified(issue, notify_repo, headers):
-    if issue.get("trigger") == "unassigned":
-        search_term = f"[RECLAIMED] [{issue['repo_name']} #{issue['number']}]"
-    else:
-        search_term = f"[{issue['repo_name']} #{issue['number']}]"
-    url = "https://api.github.com/search/issues"
-    params = {
-        "q": f'repo:{notify_repo} "{search_term}" in:title is:open',
-        "per_page": 1,
-    }
-
-    try:
-        resp = requests.get(url, headers=headers, params=params, timeout=10)
-        if resp.status_code == 200 and resp.json().get("total_count", 0) > 0:
-            logger.info(f"[{issue['repo']} #{issue['number']}] Already notified, skipping")
-            return True
-    except requests.RequestException as e:
-        logger.warning(f"Dedup check failed: {e}")
-
-    return False
-
-
 def _post_notification(issue, analysis, notify_repo, token):
     headers = {
         "Authorization": f"token {token}",
         "Accept": "application/vnd.github+json",
     }
-
-    if _already_notified(issue, notify_repo, headers):
-        return False
 
     verdict = analysis.get("verdict", "STRETCH")
     label = VERDICT_TO_LABEL.get(verdict, "stretch")
@@ -79,9 +54,9 @@ def _post_notification(issue, analysis, notify_repo, token):
 
     prefix = "🔄 " if reclaimed else ""
     if reclaimed:
-        title = f"[RECLAIMED] [{issue['repo_name']} #{issue['number']}] {verdict}: {issue['title']}"
+        title = f"[RECLAIMED] [{issue['repo']} #{issue['number']}] {emoji} {verdict}: {issue['title']}"
     else:
-        title = f"[{issue['repo_name']} #{issue['number']}] {verdict}: {issue['title']}"
+        title = f"[{issue['repo']} #{issue['number']}] {emoji} {verdict}: {issue['title']}"
     if len(title) > 256:
         title = title[:253] + "..."
 

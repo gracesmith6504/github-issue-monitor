@@ -63,7 +63,7 @@ def run_once(config, poller, run_start):
             else:
                 notifier.notify_simple(issue, analysis, config["notify_repo"], config["notify_token"])
 
-    _update_last_checked(config["monitor_token"], config["notify_repo"], run_start)
+    _update_last_checked(config["notify_token"], config["notify_repo"], run_start)
 
 
 def main():

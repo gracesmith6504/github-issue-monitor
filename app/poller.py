@@ -18,8 +18,8 @@ class Poller:
             "Accept": "application/vnd.github+json",
         }
 
-    def _is_already_notified(self, number, repo_name, notify_repo):
-        search_term = f"[{repo_name} #{number}]"
+    def _is_already_notified(self, number, repo, notify_repo):
+        search_term = f"[{repo} #{number}]"
         url = "https://api.github.com/search/issues"
         params = {
             "q": f'repo:{notify_repo} "{search_term}" in:title',
@@ -124,7 +124,7 @@ class Poller:
                     logger.info(f"[{repo} #{number}] Skipping — has linked open PR")
                     continue
 
-                already_notified = self._is_already_notified(number, repo_name, notify_repo)
+                already_notified = self._is_already_notified(number, repo, notify_repo)
                 if already_notified:
                     if self._was_recently_unassigned(repo, number, since):
                         logger.info(f"[{repo} #{number}] Reclaimed — was assigned then unassigned")

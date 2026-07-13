@@ -46,6 +46,14 @@ Red flags that should push the verdict DOWN (toward STRETCH, LONG SHOT, or NOT Y
 - New subsystems or features that require design decisions (what API shape, what error handling strategy, what data model)
 - Issues with words like "contract", "harness", "framework", "abstraction", "lifecycle"
 
+Complexity domains that push toward STRETCH or below even when the issue is well-written — these are areas where Claude Code helps write code but cannot make the judgment calls:
+- Auth, OAuth, or credential lifecycle — designing token flows, session management, or security scoping
+- Networking internals — proxy chains, HTTP CONNECT, TLS termination, tunneling, DNS resolution
+- SSH, PTY, or terminal handling — session lifecycle, channel management, signal propagation
+- Concurrency or streaming protocols — async lifecycles, bidirectional gRPC, race conditions
+- Security boundaries — policy enforcement, sandboxing, access control decisions
+- New feature implementation requiring API design — choosing the right interface shape, error semantics, data model
+
 Use these five verdicts:
 
 - "JUMP ON IT": Clear starting point, small scope (1-2 files), no codebase familiarity needed. Fix a typo, update a config, add a simple flag. Claim it now.
@@ -59,7 +67,7 @@ When in doubt between two verdicts, pick the LOWER one. A newcomer surprised by 
 Return a JSON object with these exact fields:
 - "summary": 2-3 sentence plain English summary of what the issue is about
 - "fix_description": What the fix likely involves — be specific about files/functions if the issue mentions them
-- "skills_needed": List of specific skills needed (e.g. ["Rust", "async/await", "HTTP parsing"])
+- "skills_needed": Skills needed to implement the FIX, not skills shown in the issue text. Identify the language the fix will be written in (which may differ from code samples in the issue body like reproduction scripts) and the domain knowledge required.
 - "verdict": One of "JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT", "NOT YET"
 - "verdict_reason": One sentence explaining the verdict based on what's specific to this issue — what the starting point is (or isn't), what expertise is needed, what's vague. Do NOT write generic lines like "Claude Code can help" — that applies to every issue and adds nothing.
 
@@ -114,12 +122,10 @@ Labels: {', '.join(issue['labels']) if issue['labels'] else 'none'}
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.3,
+            response_format={"type": "json_object"},
         )
 
         content = response.choices[0].message.content.strip()
-        if content.startswith("```"):
-            content = content.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-
         analysis = json.loads(content)
         logger.info(f"[{issue['repo']} #{issue['number']}] Verdict: {analysis.get('verdict')}")
         return analysis
