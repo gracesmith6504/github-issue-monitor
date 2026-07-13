@@ -2,9 +2,11 @@
 
 A bot that emails you newcomer-friendly open source issues before they get claimed.
 
-**The problem:** Contributing to open source is hard when you're new. Most issues are too complex, and the ones you could actually do get claimed quickly before you even see them.
+I built this because I wanted to contribute to [OpenShell](https://github.com/NVIDIA/OpenShell) but kept running into the same two problems: by the time I found an issue that looked doable, someone had already claimed it in the comments. And most of the time I couldn't even tell which issues were suitable for me — a well-written issue with detailed requirements can still be impossible if it needs deep architectural knowledge of the codebase.
 
-**The solution:** Fork this repo, tell it which repos to watch, and it emails you every time a suitable issue appears — rated by an LLM so you only see the ones worth attempting.
+So I built a monitor that watches repos for new issues, uses an LLM to rate how approachable each one is for a newcomer, and emails me before anyone else claims it. It led to my [first upstream contribution](https://github.com/NVIDIA/OpenShell/pull/2241).
+
+Fork this repo, tell it which repos to watch, and it does the same for you — completely free.
 
 This is what the email looks like:
 
