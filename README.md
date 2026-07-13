@@ -30,6 +30,8 @@ By default you get notified on JUMP ON IT, GO FOR IT, and STRETCH. LONG SHOT and
 
 Works on any public repo. No webhooks needed. Completely free.
 
+![Architecture diagram](docs/architecture.png)
+
 ---
 
 ## Quick Setup — 2 minutes
