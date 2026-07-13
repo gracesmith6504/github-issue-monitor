@@ -67,7 +67,7 @@ When in doubt between two verdicts, pick the LOWER one. A newcomer surprised by 
 Return a JSON object with these exact fields:
 - "summary": 2-3 sentence plain English summary of what the issue is about
 - "fix_description": What the fix likely involves — be specific about files/functions if the issue mentions them
-- "skills_needed": Skills needed to implement the FIX, not skills shown in the issue text. Identify the language the fix will be written in (which may differ from code samples in the issue body like reproduction scripts) and the domain knowledge required.
+- "skills_needed": Skills needed to implement the FIX, not skills shown in the issue text (e.g. ["Rust", "SSH internals", "async/await"]). Identify the language the fix will be written in (which may differ from code samples in the issue body like reproduction scripts) and the domain knowledge required.
 - "verdict": One of "JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT", "NOT YET"
 - "verdict_reason": One sentence explaining the verdict based on what's specific to this issue — what the starting point is (or isn't), what expertise is needed, what's vague. Do NOT write generic lines like "Claude Code can help" — that applies to every issue and adds nothing.
 
