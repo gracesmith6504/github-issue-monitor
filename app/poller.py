@@ -114,7 +114,7 @@ class Poller:
                                 if created >= cutoff:
                                     result["has_fork_activity"] = True
 
-                    elif event_type in ("committed", "referenced"):
+                    elif event_type == "committed":
                         result["has_linked_commit"] = True
 
                     elif event_type == "unassigned":
