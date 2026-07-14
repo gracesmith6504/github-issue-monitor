@@ -138,10 +138,13 @@ def _llm_analyze(issue, token, model, hint):
     else:
         comments_section = "(no comments)"
 
+    repo_lang = issue.get('repo_language')
+    lang_note = f"\nThis repository is primarily written in {repo_lang}. The fix will most likely be in {repo_lang}, even if code samples in the issue body are in a different language.\n" if repo_lang else ""
+
     user_prompt = f"""Issue from {issue['repo']}:
 
 Title: {issue['title']}
-
+{lang_note}
 Body:
 {issue['body'][:3000] if issue['body'] else '(no description provided)'}
 

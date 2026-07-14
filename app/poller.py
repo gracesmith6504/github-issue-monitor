@@ -116,6 +116,13 @@ class Poller:
             "per_page": 100,
         }
         repo_name = repo.split("/")[-1]
+        repo_language = None
+        try:
+            repo_resp = requests.get(f"https://api.github.com/repos/{repo}", headers=self.headers, timeout=10)
+            if repo_resp.status_code == 200:
+                repo_language = repo_resp.json().get("language")
+        except requests.RequestException:
+            pass
         new_issues = []
 
         while url and len(new_issues) < limit:
@@ -177,6 +184,7 @@ class Poller:
                     "labels": [l.get("name") for l in issue.get("labels", [])],
                     "repo": repo,
                     "repo_name": repo_name,
+                    "repo_language": repo_language,
                     "comments": comments,
                 }
                 if already_notified:
