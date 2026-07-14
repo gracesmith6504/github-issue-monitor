@@ -13,6 +13,29 @@ SKIP_LABELS = {
 
 RECLAIMED_LABELS = {"state:in-progress", "state:pr-opened"}
 
+CLAIMED_PHRASES = [
+    "i'll work on this",
+    "i will work on this",
+    "i would like to work on this",
+    "i'd like to work on this",
+    "i want to work on this",
+    "i'll take this",
+    "i will take this",
+    "i'd like to take this",
+    "i'm working on this",
+    "i'm working on a fix",
+    "i'll submit a pr",
+    "i'll open a pr",
+    "i will submit a pr",
+    "i'll send a pr",
+    "let me take this",
+    "i can take this",
+    "i'll handle this",
+    "i am working on this",
+    "working on a fix",
+    "i'll pick this up",
+]
+
 
 class Poller:
     def __init__(self, token):
@@ -53,6 +76,13 @@ class Poller:
             ]
         except requests.RequestException:
             return []
+
+    def _is_claimed_in_comments(self, comments):
+        for c in comments:
+            body = c.get("body", "").lower()
+            if any(phrase in body for phrase in CLAIMED_PHRASES):
+                return c.get("user", "unknown")
+        return None
 
     def _scan_timeline(self, repo, number, since):
         result = {"has_open_pr": False, "has_linked_commit": False, "has_fork_activity": False, "abandoned_signals": []}
@@ -174,6 +204,11 @@ class Poller:
                         continue
 
                 comments = self._fetch_recent_comments(repo, number)
+
+                claimed_by = self._is_claimed_in_comments(comments)
+                if claimed_by:
+                    logger.info(f"[{repo} #{number}] Skipping — claimed by @{claimed_by}")
+                    continue
 
                 issue_dict = {
                     "id": issue.get("id"),
