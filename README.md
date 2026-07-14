@@ -159,11 +159,11 @@ oc run issue-monitor \
 ## How It Works
 
 1. Polls the GitHub Issues API for each repo you're watching, using a persistent `since` timestamp to track what's already been seen
-2. Filters out pull requests, assigned issues, issues with linked open PRs or linked commits, issues referenced from a fork in the last 7 days (someone is likely working on a fix before opening a PR), and issues with skip labels (`spike`, `refactor`, `architecture`, `design`, `rfc`, `breaking-change`, `epic`, `state:pr-opened`, `state:in-progress`) — these are enforced in Python before the LLM ever sees them
+2. Filters out pull requests, assigned issues, issues with linked open PRs or linked commits, issues referenced from a fork in the last 7 days (someone is likely working on a fix before opening a PR), issues claimed in comments (common phrases like "I'll work on this" are caught deterministically), and issues with skip labels (`spike`, `refactor`, `architecture`, `design`, `rfc`, `breaking-change`, `epic`, `state:pr-opened`, `state:in-progress`) — these are all enforced in Python before the LLM ever sees them
 3. Catches two kinds of opportunity: new unassigned issues, and reclaimed issues — detected via three signals: contributor unassigned, linked PR closed without merge, or work-in-progress labels (`state:in-progress`, `state:pr-opened`) removed. Fork references older than 7 days are ignored (likely abandoned).
 4. Checks labels — `good first issue` is an instant strong signal
 5. Sends the issue and its recent comments to GPT-4o via GitHub Models (free, configurable via `LLM_MODEL` env var) which assesses it on three axes: how clear the starting point is, whether the scope is contained, and whether the fix requires codebase familiarity a newcomer wouldn't have
-6. Skips issues claimed in comments (detected by the LLM) and anything below your `MIN_VERDICT` threshold (default: STRETCH)
+6. The LLM provides a second pass on claimed detection (for unusual wordings) and skips anything below your `MIN_VERDICT` threshold (default: STRETCH)
 7. Creates a notification issue in your fork — GitHub emails you because the bot opens it, not you
 
 ## Costs
