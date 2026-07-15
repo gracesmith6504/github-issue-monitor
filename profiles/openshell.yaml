@@ -1,0 +1,77 @@
+repos:
+  - "NVIDIA/OpenShell"
+
+calibration: |
+  CRITICAL context for this repository:
+  - Issues are written by AI agents and are ALL detailed with file paths,
+    line numbers, reproduction steps, and root cause analysis. Detail does
+    NOT mean the issue is easy — it means the filing agent was thorough.
+    Do NOT let detailed issue descriptions push the verdict UP.
+  - This is a 21-crate Rust workspace (~8.8M lines). The number of CRATES
+    touched matters more than the number of files. A change in one isolated
+    crate may be trivial; a change spanning crates requires understanding
+    dependency relationships that a newcomer cannot learn quickly.
+  - The project has a vouch gate — first-time external contributors must get
+    a maintainer to /vouch them before any PR is accepted.
+
+architecture: |
+  Subsystem isolation (least to most interconnected):
+  - Docs/examples: No Rust needed. Always safe for newcomers.
+  - openshell-tui (18 files): Terminal UI dashboard, isolated, few dependencies. Self-contained changes.
+  - openshell-cli (17 files): CLI frontend, mostly isolated. Safe for newcomers who know Rust basics.
+  - openshell-policy (3 files): Policy parsing, small and focused. Depends only on core.
+  - openshell-router (5 files): Inference routing, small and focused. Depends only on core.
+  - openshell-driver-docker (2 files): Simplest compute driver. Depends only on core.
+  - openshell-bootstrap (9 files): Gateway registration, auth tokens. Moderate complexity.
+  - openshell-supervisor-process (19 files): SSH server, process spawning, privilege drop. NOT newcomer-friendly.
+  - openshell-supervisor-network (26 files): L7 proxy, OPA policy, inference routing. Hard.
+  - openshell-server (59 files, depends on 12 other crates): The gateway hub. ANY issue touching this is STRETCH at minimum.
+  - openshell-core (30 files): Foundation crate — every other crate depends on it. Changes here cascade everywhere. LONG SHOT or NOT YET.
+
+domains: |
+  Hard domains (push verdict DOWN even when file paths are given):
+  - SSH/PTY handling, session lifecycle, channel management
+  - Landlock/seccomp sandboxing, security policy enforcement
+  - gRPC API changes touching proto definitions in proto/
+  - Cross-crate refactoring or new abstractions
+  - Network proxy internals, L7 policy evaluation, TLS termination
+  - Concurrency, async lifecycles, race conditions
+  - Multi-platform issues (macOS vs Linux driver differences)
+
+  Easier domains (don't push down):
+  - Documentation and examples (no Rust needed)
+  - Build system fixes (build.rs, Cargo.toml, mise tasks)
+  - CLI flag additions or changes in openshell-cli
+  - TUI layout, styling, or navigation in openshell-tui
+  - Single-crate bug fixes with clear error messages and isolated scope
+  - Test additions following existing patterns
+
+examples:
+  - number: 832
+    verdict: "JUMP ON IT"
+    reason: "1-line fix in build.rs — change glob pattern from 'v*' to 'v[0-9]*'. Root cause fully diagnosed in issue. Multiple people independently submitted the same fix."
+  - number: 1339
+    verdict: "JUMP ON IT"
+    reason: "Replace '--sync' with '--upload .' in one documentation file. No Rust, no codebase knowledge, no tests needed."
+  - number: 2173
+    verdict: "GO FOR IT"
+    reason: "Certgen EXDEV fix — exact file and line given (certgen.rs L680), one function to change (std::fs::rename to copy+delete), Rust but contained to a single crate."
+  - number: 1347
+    verdict: "STRETCH"
+    reason: "Provider update validation split — 2 files, 67 lines, required understanding gRPC validation patterns and writing regression tests. No newcomer picked it up."
+  - number: 1425
+    verdict: "LONG SHOT"
+    reason: "Symlink upload fix — looked simple but needed 296 lines across 4 files in CLI internals. Community attempt was rejected; maintainer had to write the fix."
+  - number: 1358
+    verdict: "NOT YET"
+    reason: "macOS gateway crash-loop — cross-platform networking issue across multiple drivers. 15 files changed by core maintainer. Incorrectly labeled 'good first issue'."
+
+label_map:
+  "JUMP ON IT": "good first issue"
+  "GO FOR IT": "good first issue"
+
+verdict_overrides:
+  "JUMP ON IT": "Fix is practically spelled out — exact file, exact line, mechanical change. 1 file, under 10 lines. No Rust knowledge needed, or trivial Rust (change a string/constant). A newcomer can do this in under an hour."
+  "GO FOR IT": "Clear starting point with specific file(s). Fix is contained to 1-2 files in a single isolated crate (like openshell-tui, openshell-cli, or openshell-policy). Requires basic Rust but no architectural knowledge. A newcomer with Claude Code can implement this in a few hours."
+  "STRETCH": "Requires reading existing code patterns in 1-2 crates, touching 2-5 files, or making implementation judgment calls. A newcomer with Rust experience and patience could do this, but it is NOT a good first issue. Do not apply the 'good first issue' label."
+  "LONG SHOT": "Touches openshell-server, openshell-supervisor-network, or openshell-core. Requires cross-crate changes, protocol knowledge, or security domain expertise. Real risk of spending days and failing."

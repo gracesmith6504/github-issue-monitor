@@ -14,29 +14,32 @@ def _headers(token):
     return {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
 
 
-def ensure_label(repo, token):
-    url = f"https://api.github.com/repos/{repo}/labels/{GOOD_FIRST_ISSUE_LABEL}"
+def ensure_label(repo, token, label_name=None, label_color=None):
+    name = label_name or GOOD_FIRST_ISSUE_LABEL
+    color = label_color or GOOD_FIRST_ISSUE_COLOR
+    url = f"https://api.github.com/repos/{repo}/labels/{name}"
     resp = requests.get(url, headers=_headers(token), timeout=10)
     if resp.status_code == 404:
         requests.post(
             f"https://api.github.com/repos/{repo}/labels",
             headers=_headers(token),
-            json={"name": GOOD_FIRST_ISSUE_LABEL, "color": GOOD_FIRST_ISSUE_COLOR},
+            json={"name": name, "color": color},
             timeout=10,
         )
-        logger.info(f"Created '{GOOD_FIRST_ISSUE_LABEL}' label on {repo}")
+        logger.info(f"Created '{name}' label on {repo}")
 
 
-def add_label(repo, issue_number, token):
-    ensure_label(repo, token)
+def add_label(repo, issue_number, token, label_name=None):
+    name = label_name or GOOD_FIRST_ISSUE_LABEL
+    ensure_label(repo, token, label_name=name)
 
     url = f"https://api.github.com/repos/{repo}/issues/{issue_number}/labels"
     resp = requests.post(
-        url, headers=_headers(token), json={"labels": [GOOD_FIRST_ISSUE_LABEL]}, timeout=10,
+        url, headers=_headers(token), json={"labels": [name]}, timeout=10,
     )
 
     if resp.status_code in (200, 201):
-        logger.info(f"Added '{GOOD_FIRST_ISSUE_LABEL}' to {repo}#{issue_number}")
+        logger.info(f"Added '{name}' to {repo}#{issue_number}")
         return True
 
     logger.warning(f"Failed to add label: {resp.status_code} {resp.text[:200]}")

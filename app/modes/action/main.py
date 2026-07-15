@@ -5,6 +5,8 @@ import sys
 
 from app.core.assessment import assess_issue
 from app.core.llm import GitHubModelsClient
+from app.core.profiles import load_profile
+from app.core.prompt import build_system_prompt
 from app.core.verdict import meets_threshold
 from app.modes.action.labeler import add_label, post_comment, GOOD_FIRST_ISSUE_LABEL
 
@@ -60,13 +62,24 @@ def main():
     model = os.environ.get("INPUT_LLM_MODEL") or os.environ.get("INPUT_LLM-MODEL") or "gpt-4o"
     min_verdict = (os.environ.get("INPUT_MIN_VERDICT") or os.environ.get("INPUT_MIN-VERDICT") or "STRETCH").upper()
 
+    profile_name = os.environ.get("INPUT_REPO_PROFILE") or os.environ.get("INPUT_REPO-PROFILE") or ""
+    profile = None
+    if profile_name.strip():
+        try:
+            profile = load_profile(profile_name.strip())
+            logger.info(f"Loaded profile: {profile.name}")
+        except (FileNotFoundError, ValueError) as e:
+            logger.warning(f"Failed to load profile '{profile_name}': {e}")
+
+    system_prompt = build_system_prompt(profile)
+
     event = load_event()
     issue_dict = build_issue_dict(event)
 
     logger.info(f"Assessing: {issue_dict['repo']} #{issue_dict['number']} — {issue_dict['title']}")
 
     llm_client = GitHubModelsClient(api_key=llm_token)
-    analysis = assess_issue(issue_dict, llm_client, model)
+    analysis = assess_issue(issue_dict, llm_client, model, system_prompt=system_prompt)
 
     if not analysis:
         logger.warning("Assessment failed, exiting gracefully")
@@ -84,8 +97,16 @@ def main():
     repo = issue_dict["repo"]
     number = issue_dict["number"]
 
-    if add_label(repo, number, github_token):
-        _set_output("label", GOOD_FIRST_ISSUE_LABEL)
+    if profile and profile.label_map:
+        label_name = profile.label_map.get(verdict)
+        if label_name:
+            if add_label(repo, number, github_token, label_name=label_name):
+                _set_output("label", label_name)
+        else:
+            logger.info(f"Verdict '{verdict}' has no label in profile — comment only")
+    else:
+        if add_label(repo, number, github_token):
+            _set_output("label", GOOD_FIRST_ISSUE_LABEL)
 
     post_comment(repo, number, analysis, github_token)
     logger.info(f"Done — {repo} #{number}: {verdict}")

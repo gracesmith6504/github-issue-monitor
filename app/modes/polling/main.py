@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 
 from app.core.assessment import assess_issue
 from app.core.llm import GitHubModelsClient
+from app.core.profiles import find_profile_for_repo
+from app.core.prompt import build_system_prompt
 from app.core.verdict import meets_threshold
 from app.modes.polling.config import load_config
 from app.modes.polling.poller import Poller
@@ -20,6 +22,11 @@ logger = logging.getLogger(__name__)
 
 def run_once(config, poller, llm_client, run_start):
     for repo in config["watch_repos"]:
+        profile = find_profile_for_repo(repo)
+        if profile:
+            logger.info(f"[{repo}] Using profile: {profile.name}")
+        system_prompt = build_system_prompt(profile)
+
         new_issues = poller.poll(repo, config["last_checked"], config["notify_repo"],
                                  limit=config["max_issues_per_repo"])
 
@@ -28,7 +35,8 @@ def run_once(config, poller, llm_client, run_start):
                 time.sleep(config["analysis_delay"])
             logger.info(f"Analyzing: {issue['repo']} #{issue['number']} — {issue['title']}")
 
-            analysis = assess_issue(issue, llm_client, config["llm_model"])
+            analysis = assess_issue(issue, llm_client, config["llm_model"],
+                                    system_prompt=system_prompt)
             if not analysis:
                 logger.warning(f"Skipping {issue['repo']} #{issue['number']} — analysis failed")
                 continue

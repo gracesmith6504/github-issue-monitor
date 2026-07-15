@@ -1,6 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from app.core.truncation import truncate_body
 
-SYSTEM_PROMPT = """You are assessing GitHub issues for someone who is new to this repository and has access to Claude Code (an AI coding assistant).
+if TYPE_CHECKING:
+    from app.core.profiles import RepoProfile
+
+BASE_SYSTEM_PROMPT = """You are assessing GitHub issues for someone who is new to this repository and has access to Claude Code (an AI coding assistant).
 
 The key question is NOT "is this issue easy?" and NOT "is this issue well-written?" It is: "could a newcomer who has never seen this codebase before actually complete this, with Claude Code's help?"
 
@@ -62,6 +69,54 @@ Return a JSON object with these exact fields:
 - "claimed": true if someone has claimed this issue in the comments, false otherwise
 
 Return ONLY the JSON object, no markdown fences or extra text."""
+
+SYSTEM_PROMPT = BASE_SYSTEM_PROMPT
+
+
+def build_system_prompt(profile: RepoProfile | None = None) -> str:
+    if profile is None:
+        return BASE_SYSTEM_PROMPT
+
+    sections = [BASE_SYSTEM_PROMPT]
+
+    if profile.calibration:
+        sections.append(
+            f"\n\n--- REPOSITORY-SPECIFIC CALIBRATION ---\n{profile.calibration.strip()}"
+        )
+
+    if profile.architecture:
+        sections.append(
+            f"\n\n--- ARCHITECTURE GUIDE ---\n{profile.architecture.strip()}"
+        )
+
+    if profile.domains:
+        sections.append(
+            f"\n\n--- DOMAIN COMPLEXITY ---\n{profile.domains.strip()}"
+        )
+
+    if profile.examples:
+        lines = [
+            f"- Issue #{ex['number']}: {ex['verdict']} — {ex['reason']}"
+            for ex in profile.examples
+        ]
+        sections.append(
+            f"\n\n--- HISTORICAL CALIBRATION EXAMPLES ---\n"
+            f"Use these as anchors for your verdicts in this repository:\n"
+            + "\n".join(lines)
+        )
+
+    if profile.verdict_overrides:
+        lines = [
+            f'- "{verdict}": {text}'
+            for verdict, text in profile.verdict_overrides.items()
+        ]
+        sections.append(
+            f"\n\n--- ADJUSTED VERDICT CRITERIA ---\n"
+            f"For this repository, use these adjusted definitions instead of the generic ones above:\n"
+            + "\n".join(lines)
+        )
+
+    return "\n".join(sections)
 
 
 def build_user_prompt(issue: dict, hint: str | None) -> str:

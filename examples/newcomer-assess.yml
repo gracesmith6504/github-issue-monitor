@@ -1,5 +1,6 @@
 # Copy this file to .github/workflows/newcomer-assess.yml in your repo.
 # Set the LLM_TOKEN secret in your repo settings (GitHub Models API key).
+# For OpenShell, add repo-profile: openshell to use calibrated assessment.
 
 name: Assess newcomer-friendliness
 
@@ -18,3 +19,4 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           llm-token: ${{ secrets.LLM_TOKEN }}
+          repo-profile: openshell

@@ -2,6 +2,9 @@ import json
 import os
 from unittest.mock import patch, MagicMock
 
+import yaml
+
+from app.core.profiles import RepoProfile
 from app.modes.action.main import build_issue_dict, main
 from app.modes.action.labeler import ensure_label, add_label, post_comment, GOOD_FIRST_ISSUE_LABEL
 
@@ -188,3 +191,82 @@ class TestActionMain:
         assert "verdict=STRETCH" in outputs
         assert "summary=Moderate task" in outputs
         assert "label=good first issue" in outputs
+
+
+class TestProfileAwareLabeling:
+    def _make_profile_dir(self, tmp_path):
+        profiles_dir = tmp_path / "profiles"
+        profiles_dir.mkdir()
+        profile_data = {
+            "repos": ["org/repo"],
+            "label_map": {"JUMP ON IT": "good first issue", "GO FOR IT": "good first issue"},
+        }
+        (profiles_dir / "test.yaml").write_text(yaml.dump(profile_data))
+        return profiles_dir
+
+    def test_uses_profile_label_map(self, tmp_path):
+        event_path = _write_event(tmp_path)
+        profiles_dir = self._make_profile_dir(tmp_path)
+        analysis = {"verdict": "GO FOR IT", "summary": "Easy fix", "claimed": False}
+
+        env = {
+            "GITHUB_EVENT_PATH": event_path,
+            "INPUT_LLM_TOKEN": "fake-llm-token",
+            "INPUT_GITHUB_TOKEN": "fake-gh-token",
+            "INPUT_REPO_PROFILE": "test",
+            "INPUT_MIN_VERDICT": "STRETCH",
+            "GITHUB_OUTPUT": str(tmp_path / "output.txt"),
+        }
+        (tmp_path / "output.txt").write_text("")
+
+        with patch.dict(os.environ, env, clear=False), \
+             patch("app.modes.action.main.assess_issue", return_value=analysis), \
+             patch("app.core.profiles.PROFILES_DIR", profiles_dir), \
+             patch("app.modes.action.main.add_label", return_value=True) as mock_label, \
+             patch("app.modes.action.main.post_comment"):
+            main()
+            mock_label.assert_called_once_with("org/repo", 42, "fake-gh-token", label_name="good first issue")
+
+    def test_no_label_when_verdict_not_in_map(self, tmp_path):
+        event_path = _write_event(tmp_path)
+        profiles_dir = self._make_profile_dir(tmp_path)
+        analysis = {"verdict": "STRETCH", "summary": "Harder fix", "claimed": False}
+
+        env = {
+            "GITHUB_EVENT_PATH": event_path,
+            "INPUT_LLM_TOKEN": "fake-llm-token",
+            "INPUT_GITHUB_TOKEN": "fake-gh-token",
+            "INPUT_REPO_PROFILE": "test",
+            "INPUT_MIN_VERDICT": "STRETCH",
+            "GITHUB_OUTPUT": str(tmp_path / "output.txt"),
+        }
+        (tmp_path / "output.txt").write_text("")
+
+        with patch.dict(os.environ, env, clear=False), \
+             patch("app.modes.action.main.assess_issue", return_value=analysis), \
+             patch("app.core.profiles.PROFILES_DIR", profiles_dir), \
+             patch("app.modes.action.main.add_label") as mock_label, \
+             patch("app.modes.action.main.post_comment") as mock_comment:
+            main()
+            mock_label.assert_not_called()
+            mock_comment.assert_called_once()
+
+    def test_falls_back_without_profile(self, tmp_path):
+        event_path = _write_event(tmp_path)
+        analysis = {"verdict": "STRETCH", "summary": "Task", "claimed": False}
+
+        env = {
+            "GITHUB_EVENT_PATH": event_path,
+            "INPUT_LLM_TOKEN": "fake-llm-token",
+            "INPUT_GITHUB_TOKEN": "fake-gh-token",
+            "INPUT_MIN_VERDICT": "STRETCH",
+            "GITHUB_OUTPUT": str(tmp_path / "output.txt"),
+        }
+        (tmp_path / "output.txt").write_text("")
+
+        with patch.dict(os.environ, env, clear=False), \
+             patch("app.modes.action.main.assess_issue", return_value=analysis), \
+             patch("app.modes.action.main.add_label", return_value=True) as mock_label, \
+             patch("app.modes.action.main.post_comment"):
+            main()
+            mock_label.assert_called_once_with("org/repo", 42, "fake-gh-token")

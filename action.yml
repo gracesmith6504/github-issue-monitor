@@ -16,6 +16,10 @@ inputs:
     description: 'Minimum verdict to apply a label (JUMP ON IT, GO FOR IT, STRETCH, LONG SHOT, NOT YET)'
     required: false
     default: 'STRETCH'
+  repo-profile:
+    description: 'Name of the repo profile for calibrated assessment (e.g. "openshell"). If not set, uses generic assessment.'
+    required: false
+    default: ''
 
 outputs:
   verdict:
@@ -47,5 +51,6 @@ runs:
         INPUT_LLM_TOKEN: ${{ inputs.llm-token }}
         INPUT_LLM_MODEL: ${{ inputs.llm-model }}
         INPUT_MIN_VERDICT: ${{ inputs.min-verdict }}
+        INPUT_REPO_PROFILE: ${{ inputs.repo-profile }}
         PYTHONPATH: ${{ github.action_path }}
       run: python -m app.modes.action.main
