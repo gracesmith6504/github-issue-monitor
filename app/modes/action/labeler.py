@@ -44,13 +44,17 @@ def add_label(repo, issue_number, token, label_name=None):
     return False
 
 
-def post_comment(repo, issue_number, analysis, token):
+def post_comment(repo, issue_number, analysis, token, suggested_label=None):
     verdict = analysis.get("verdict", "")
     fix_description = analysis.get("fix_description", "")
     skills = analysis.get("skills_needed", [])
     reason = analysis.get("verdict_reason", "")
 
     skills_str = ", ".join(skills) if skills else "None identified"
+
+    label_line = ""
+    if suggested_label:
+        label_line = f">\n> **Suggested label:** `{suggested_label}`\n"
 
     body = (
         f"> **\U0001f4cb newcomer-assess**\n"
@@ -62,6 +66,7 @@ def post_comment(repo, issue_number, analysis, token):
         f"> **Skills:** {skills_str}\n"
         f">\n"
         f"> **Why:** {reason}\n"
+        f"{label_line}"
         f">\n"
         f"> *[github-issue-monitor](https://github.com/gracesmith6504/github-issue-monitor)*"
     )

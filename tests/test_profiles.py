@@ -56,6 +56,17 @@ class TestLoadProfile:
         assert profile.examples == []
         assert profile.label_map == {}
         assert profile.verdict_overrides == {}
+        assert profile.auto_label is True
+
+    def test_auto_label_defaults_true(self, tmp_path):
+        _write_profile(tmp_path, "noflag", {"repos": ["org/repo"]})
+        profile = load_profile("noflag", profiles_dir=tmp_path)
+        assert profile.auto_label is True
+
+    def test_auto_label_false(self, tmp_path):
+        _write_profile(tmp_path, "noauto", {"repos": ["org/repo"], "auto_label": False})
+        profile = load_profile("noauto", profiles_dir=tmp_path)
+        assert profile.auto_label is False
 
     def test_strips_yaml_extension(self, tmp_path):
         _write_profile(tmp_path, "test", {"repos": ["org/repo"]})

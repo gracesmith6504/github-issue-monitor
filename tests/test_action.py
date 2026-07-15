@@ -195,12 +195,13 @@ class TestActionMain:
 
 
 class TestProfileAwareLabeling:
-    def _make_profile_dir(self, tmp_path):
+    def _make_profile_dir(self, tmp_path, auto_label=True):
         profiles_dir = tmp_path / "profiles"
-        profiles_dir.mkdir()
+        profiles_dir.mkdir(exist_ok=True)
         profile_data = {
             "repos": ["org/repo"],
             "label_map": {"JUMP ON IT": "good first issue", "GO FOR IT": "good first issue"},
+            "auto_label": auto_label,
         }
         (profiles_dir / "test.yaml").write_text(yaml.dump(profile_data))
         return profiles_dir
@@ -271,3 +272,55 @@ class TestProfileAwareLabeling:
              patch("app.modes.action.main.post_comment"):
             main()
             mock_label.assert_called_once_with("org/repo", 42, "fake-gh-token")
+
+    def test_suggests_label_when_auto_label_false(self, tmp_path):
+        event_path = _write_event(tmp_path)
+        profiles_dir = self._make_profile_dir(tmp_path, auto_label=False)
+        analysis = {"verdict": "GO FOR IT", "summary": "Easy fix", "claimed": False}
+
+        env = {
+            "GITHUB_EVENT_PATH": event_path,
+            "INPUT_LLM_TOKEN": "fake-llm-token",
+            "INPUT_GITHUB_TOKEN": "fake-gh-token",
+            "INPUT_REPO_PROFILE": "test",
+            "INPUT_MIN_VERDICT": "STRETCH",
+            "GITHUB_OUTPUT": str(tmp_path / "output.txt"),
+        }
+        (tmp_path / "output.txt").write_text("")
+
+        with patch.dict(os.environ, env, clear=False), \
+             patch("app.modes.action.main.assess_issue", return_value=analysis), \
+             patch("app.core.profiles.PROFILES_DIR", profiles_dir), \
+             patch("app.modes.action.main.add_label") as mock_label, \
+             patch("app.modes.action.main.post_comment") as mock_comment:
+            main()
+            mock_label.assert_not_called()
+            mock_comment.assert_called_once()
+            _, kwargs = mock_comment.call_args
+            assert kwargs.get("suggested_label") == "good first issue"
+
+    def test_auto_labels_when_auto_label_true(self, tmp_path):
+        event_path = _write_event(tmp_path)
+        profiles_dir = self._make_profile_dir(tmp_path, auto_label=True)
+        analysis = {"verdict": "GO FOR IT", "summary": "Easy fix", "claimed": False}
+
+        env = {
+            "GITHUB_EVENT_PATH": event_path,
+            "INPUT_LLM_TOKEN": "fake-llm-token",
+            "INPUT_GITHUB_TOKEN": "fake-gh-token",
+            "INPUT_REPO_PROFILE": "test",
+            "INPUT_MIN_VERDICT": "STRETCH",
+            "GITHUB_OUTPUT": str(tmp_path / "output.txt"),
+        }
+        (tmp_path / "output.txt").write_text("")
+
+        with patch.dict(os.environ, env, clear=False), \
+             patch("app.modes.action.main.assess_issue", return_value=analysis), \
+             patch("app.core.profiles.PROFILES_DIR", profiles_dir), \
+             patch("app.modes.action.main.add_label", return_value=True) as mock_label, \
+             patch("app.modes.action.main.post_comment") as mock_comment:
+            main()
+            mock_label.assert_called_once_with("org/repo", 42, "fake-gh-token", label_name="good first issue")
+            mock_comment.assert_called_once()
+            _, kwargs = mock_comment.call_args
+            assert "suggested_label" not in kwargs or kwargs.get("suggested_label") is None

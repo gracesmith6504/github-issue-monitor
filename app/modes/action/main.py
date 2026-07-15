@@ -99,16 +99,18 @@ def main():
 
     if profile and profile.label_map:
         label_name = profile.label_map.get(verdict)
-        if label_name:
+        if label_name and profile.auto_label:
             if add_label(repo, number, github_token, label_name=label_name):
                 _set_output("label", label_name)
+            post_comment(repo, number, analysis, github_token)
+        elif label_name:
+            post_comment(repo, number, analysis, github_token, suggested_label=label_name)
         else:
-            logger.info(f"Verdict '{verdict}' has no label in profile — comment only")
+            post_comment(repo, number, analysis, github_token)
     else:
         if add_label(repo, number, github_token):
             _set_output("label", GOOD_FIRST_ISSUE_LABEL)
-
-    post_comment(repo, number, analysis, github_token)
+        post_comment(repo, number, analysis, github_token)
     logger.info(f"Done — {repo} #{number}: {verdict}")
 
 

@@ -75,6 +75,8 @@ examples:
     verdict: "LONG SHOT"
     reason: "Refactor a 10,103-line file into modules. Requires understanding every function to know where it belongs. No newcomer can safely decompose this."
 
+auto_label: false
+
 label_map:
   "JUMP ON IT": "good first issue"
   "GO FOR IT": "good first issue"

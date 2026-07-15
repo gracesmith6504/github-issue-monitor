@@ -19,6 +19,7 @@ class RepoProfile:
     examples: list[dict] = field(default_factory=list)
     label_map: dict[str, str] = field(default_factory=dict)
     verdict_overrides: dict[str, str] = field(default_factory=dict)
+    auto_label: bool = True
 
 
 def load_profile(name: str, profiles_dir: Path | None = None) -> RepoProfile:
@@ -47,6 +48,7 @@ def load_profile(name: str, profiles_dir: Path | None = None) -> RepoProfile:
         examples=data.get("examples", []),
         label_map=data.get("label_map", {}),
         verdict_overrides=data.get("verdict_overrides", {}),
+        auto_label=data.get("auto_label", True),
     )
 
 
