@@ -181,6 +181,7 @@ oc run issue-monitor \
 | Not getting emails | Watch the repo with **All Activity** (not Custom). Check the notification issue shows `github-actions[bot]` as the author, not your username. |
 | Actions workflow not running | Go to Actions tab and enable it |
 | No notifications appearing | OpenShell might just not have had new issues — try adding a busier repo to WATCH_REPOS |
+| Notifications delayed by hours | GitHub throttles scheduled workflows on low-activity forks — the `*/5` cron may run every 1-3 hours instead. Push a commit or trigger the workflow manually from the Actions tab to speed things up. |
 
 ## License
 

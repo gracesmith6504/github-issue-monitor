@@ -23,12 +23,26 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Compute LAST_CHECKED from previous run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PREV=$(gh run list --workflow monitor.yml --status completed --json conclusion,startedAt \
+            --jq '[.[] | select(.conclusion=="success")][0].startedAt' 2>/dev/null || echo "")
+          if [ -n "$PREV" ] && [ "$PREV" != "null" ]; then
+            echo "LAST_CHECKED=$PREV" >> "$GITHUB_ENV"
+          else
+            FALLBACK=$(date -u -d '6 hours ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+              || date -u -v-6H +%Y-%m-%dT%H:%M:%SZ)
+            echo "LAST_CHECKED=$FALLBACK" >> "$GITHUB_ENV"
+          fi
+
       - name: Run monitor (single pass)
         env:
           MONITOR_TOKEN: ${{ secrets.MONITOR_TOKEN || secrets.GITHUB_TOKEN }}
           NOTIFY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WATCH_REPOS: ${{ vars.WATCH_REPOS }}
-          LAST_CHECKED: ${{ vars.LAST_CHECKED }}
+          LAST_CHECKED: ${{ env.LAST_CHECKED }}
           NOTIFY_REPO: ${{ github.repository }}
           LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-4o' }}
           MIN_VERDICT: ${{ vars.MIN_VERDICT || 'STRETCH' }}

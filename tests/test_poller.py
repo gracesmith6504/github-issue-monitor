@@ -32,6 +32,9 @@ def _mock_responses(issues_json, timeline_json=None, search_json=None, comments_
         elif "/comments" in url:
             resp.status_code = 200
             resp.json.return_value = comments_json or []
+        elif "/issues" not in url and "/search" not in url:
+            resp.status_code = 200
+            resp.json.return_value = {"language": "Python"}
         else:
             resp.status_code = 200
             resp.json.return_value = issues_json

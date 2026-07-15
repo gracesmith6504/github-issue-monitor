@@ -1,6 +1,6 @@
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 def load_config():
@@ -29,14 +29,14 @@ def load_config():
     poll_interval = int(os.environ.get("POLL_INTERVAL", "30"))
     llm_model = os.environ.get("LLM_MODEL", "gpt-4o")
     min_verdict = os.environ.get("MIN_VERDICT", "STRETCH").upper()
-    max_issues_per_repo = int(os.environ.get("MAX_ISSUES_PER_REPO", "5"))
+    max_issues_per_repo = int(os.environ.get("MAX_ISSUES_PER_REPO", "20"))
     analysis_delay = int(os.environ.get("ANALYSIS_DELAY", "7"))
 
     last_checked_raw = os.environ.get("LAST_CHECKED")
     if last_checked_raw:
         last_checked = last_checked_raw
     else:
-        last_checked = datetime.now(timezone.utc).isoformat()
+        last_checked = (datetime.now(timezone.utc) - timedelta(hours=6)).isoformat()
 
     config = {
         "monitor_token": monitor_token,

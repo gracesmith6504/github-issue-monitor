@@ -29,7 +29,7 @@ class TestVerdictThreshold:
 
         with patch("app.main.analyze_issue", return_value=analysis), \
              patch("app.main.notifier") as mock_notifier, \
-             patch("app.main._update_last_checked"):
+             patch("app.main.logger"):
             run_once(config, poller, "2024-01-01T00:00:00Z")
             mock_notifier.notify_simple.assert_not_called()
 
@@ -43,7 +43,7 @@ class TestVerdictThreshold:
 
         with patch("app.main.analyze_issue", return_value=analysis), \
              patch("app.main.notifier") as mock_notifier, \
-             patch("app.main._update_last_checked"):
+             patch("app.main.logger"):
             run_once(config, poller, "2024-01-01T00:00:00Z")
             mock_notifier.notify_simple.assert_called_once()
 
@@ -57,7 +57,7 @@ class TestVerdictThreshold:
 
         with patch("app.main.analyze_issue", return_value=analysis), \
              patch("app.main.notifier") as mock_notifier, \
-             patch("app.main._update_last_checked"):
+             patch("app.main.logger"):
             run_once(config, poller, "2024-01-01T00:00:00Z")
             mock_notifier.notify_simple.assert_called_once()
 
@@ -71,7 +71,7 @@ class TestVerdictThreshold:
 
         with patch("app.main.analyze_issue", return_value=analysis), \
              patch("app.main.notifier") as mock_notifier, \
-             patch("app.main._update_last_checked"):
+             patch("app.main.logger"):
             run_once(config, poller, "2024-01-01T00:00:00Z")
             mock_notifier.notify_simple.assert_not_called()
 
@@ -84,7 +84,7 @@ class TestVerdictThreshold:
 
         with patch("app.main.analyze_issue", return_value=None), \
              patch("app.main.notifier") as mock_notifier, \
-             patch("app.main._update_last_checked"):
+             patch("app.main.logger"):
             run_once(config, poller, "2024-01-01T00:00:00Z")
             mock_notifier.notify_simple.assert_not_called()
 
@@ -93,7 +93,7 @@ class TestVerdictThreshold:
         poller = MagicMock()
         poller.poll.return_value = []
 
-        with patch("app.main._update_last_checked"):
+        with patch("app.main.logger"):
             run_once(config, poller, "2024-01-01T00:00:00Z")
             poller.poll.assert_called_once_with(
                 "org/repo", "2024-01-01T00:00:00Z", "user/alerts", limit=15
@@ -111,7 +111,7 @@ class TestVerdictThreshold:
 
         with patch("app.main.analyze_issue", return_value=analysis), \
              patch("app.main.notifier"), \
-             patch("app.main._update_last_checked"), \
+             patch("app.main.logger"), \
              patch("app.main.time") as mock_time:
             run_once(config, poller, "2024-01-01T00:00:00Z")
             mock_time.sleep.assert_called_once_with(2)
