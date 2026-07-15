@@ -65,13 +65,23 @@ examples:
   - number: 1358
     verdict: "NOT YET"
     reason: "macOS gateway crash-loop — cross-platform networking issue across multiple drivers. 15 files changed by core maintainer. Incorrectly labeled 'good first issue'."
+  - number: 2095
+    verdict: "GO FOR IT"
+    reason: "Helm template conditional rendering — add an if-check around client_ca_path in one template file. Well-diagnosed, no Rust, no design decisions."
+  - number: 2112
+    verdict: "GO FOR IT"
+    reason: "Build fix — add ulimit guard to mise task. Root cause fully diagnosed (macOS 256 fd limit vs 333 rlibs). Config change, not code."
+  - number: 2304
+    verdict: "LONG SHOT"
+    reason: "Refactor a 10,103-line file into modules. Requires understanding every function to know where it belongs. No newcomer can safely decompose this."
 
 label_map:
   "JUMP ON IT": "good first issue"
   "GO FOR IT": "good first issue"
 
 verdict_overrides:
-  "JUMP ON IT": "Fix is practically spelled out — exact file, exact line, mechanical change. 1 file, under 10 lines. No Rust knowledge needed, or trivial Rust (change a string/constant). A newcomer can do this in under an hour."
-  "GO FOR IT": "Clear starting point with specific file(s). Fix is contained to 1-2 files in a single isolated crate (like openshell-tui, openshell-cli, or openshell-policy). Requires basic Rust but no architectural knowledge. A newcomer with Claude Code can implement this in a few hours."
-  "STRETCH": "Requires reading existing code patterns in 1-2 crates, touching 2-5 files, or making implementation judgment calls. A newcomer with Rust experience and patience could do this, but it is NOT a good first issue. Do not apply the 'good first issue' label."
-  "LONG SHOT": "Touches openshell-server, openshell-supervisor-network, or openshell-core. Requires cross-crate changes, protocol knowledge, or security domain expertise. Real risk of spending days and failing."
+  "JUMP ON IT": "Fix is practically spelled out — exact file, exact line, mechanical change. 1 file, under 10 lines. No Rust knowledge needed, or trivial Rust (change a string/constant). Examples: docs typo, build.rs glob fix, config value change."
+  "GO FOR IT": "The issue diagnoses the problem clearly enough that you know WHAT to change, not just WHERE to look. Fix is contained to 1-3 files. No design decisions — the approach is obvious from the issue description. Includes: Helm template fixes, build/config fixes with clear root cause, bug fixes with exact file and line numbers, features in isolated crates (openshell-tui, openshell-cli) where the path is obvious. Claude Code can navigate the code and write the fix."
+  "STRETCH": "The issue describes the problem but the FIX requires making implementation choices — deciding between approaches, understanding existing patterns to maintain consistency, or working in a domain (SSH, networking, sandboxing) where Claude Code can explain syntax but cannot make the judgment calls. Touches 1-2 crates, 2-5 files. Still doable with patience but you will need to study the codebase."
+  "LONG SHOT": "Requires deep domain expertise, OR a large refactor where you must understand thousands of lines to restructure safely, OR cross-crate design changes, OR touches security-critical paths (openshell-supervisor-process, openshell-supervisor-network, openshell-core). Real risk of spending days stuck even with AI tools."
+  "NOT YET": "New subsystems, architectural redesign, RFC-level work, or changes that require months of project context to even understand the constraints. Examples: new compute drivers, new API surfaces, build system overhaul."
