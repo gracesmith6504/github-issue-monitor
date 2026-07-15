@@ -1,20 +1,15 @@
 # GitHub Issue Monitor
 
-A bot that emails you newcomer-friendly open source issues before they get claimed.
+An LLM-powered tool that assesses GitHub issues for newcomer-friendliness. Works in two modes:
 
-I tried GitHub's Watch notifications first but my inbox got spammed. Then I wrote a Claude Code skill to scan for issues, but I'd forget to run it and only check once a day. By then the good ones were already claimed.
+- **Action mode** — A maintainer installs this once on a repo. When someone opens an issue, it instantly assesses it, adds the `good first issue` label, and posts a comment with the breakdown. Benefits the whole project — every contributor can see which issues are newcomer-friendly.
+- **Polling mode** — Individual contributors fork this repo. It watches repos for new issues and emails you the newcomer-friendly ones before anyone else claims them.
 
-So I built a monitor that watches repos for new issues, uses an LLM to rate how approachable each one is for a newcomer, and emails me before anyone else claims it.
+Both modes use the same assessment engine: an LLM rates each issue on how clear the starting point is, whether the scope is contained, and whether the fix requires codebase familiarity a newcomer wouldn't have.
 
-Fork this repo, tell it which repos to watch, and it does the same for you — completely free.
+**They work well together.** Action mode labels issues so anyone browsing the repo can filter by `good first issue`. Polling mode emails you the moment one appears, so you never miss a good opportunity to contribute.
 
-This is what the email looks like:
-
-![Email notification example](docs/email-example.png)
-
-It also watches for **reclaimed issues** — previously claimed but then abandoned (detected via unassignment, closed PRs without merge, or removed work-in-progress labels). These show up with `[RECLAIMED]` in the subject line.
-
-Each notification tells you:
+Each assessment includes:
 - A plain English summary of what the issue is about
 - What the fix likely involves (specific files/functions if mentioned)
 - What skills you'd need
@@ -28,23 +23,80 @@ Each notification tells you:
 | 🟠 | **LONG SHOT** | Very little direction. Real risk of getting stuck. Only if you're feeling adventurous. |
 | 🔴 | **NOT YET** | No clear entry point. Needs deep architectural knowledge. Skip this one. |
 
-By default you get notified on JUMP ON IT, GO FOR IT, and STRETCH. LONG SHOT and NOT YET are silently skipped. You can adjust this with `MIN_VERDICT`.
-
-Works on any public repo. No webhooks needed. Completely free.
-
-![Architecture diagram](docs/architecture.png)
+By default, only issues rated STRETCH or above get labeled/notified. You can adjust this with `MIN_VERDICT`.
 
 ---
 
-## Quick Setup — 2 minutes
+## Action Mode — Install on any repo
 
-No server, no terminal, no installs. GitHub runs it on its own servers every 5 minutes — even when your laptop is off.
+Add this to a repo and every new issue gets assessed automatically. Newcomer-friendly issues get the `good first issue` label and a detailed comment.
 
-### 1. Fork this repo
+### Setup
+
+1. Add an `LLM_TOKEN` secret to the target repo (Settings → Secrets → Actions) — a GitHub token with access to [GitHub Models](https://github.com/marketplace/models)
+
+2. Create `.github/workflows/newcomer-assess.yml` in the target repo:
+
+```yaml
+name: Assess newcomer-friendliness
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  assess:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gracesmith6504/github-issue-monitor@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          llm-token: ${{ secrets.LLM_TOKEN }}
+```
+
+That's it. When someone opens an issue, the action runs the LLM assessment and labels it if it's newcomer-friendly.
+
+### Action inputs
+
+| Input | Required | Default | Description |
+|---|---|---|---|
+| `github-token` | Yes | — | Token with `issues:write` permission |
+| `llm-token` | Yes | — | GitHub Models API key |
+| `llm-model` | No | `gpt-4o` | LLM model to use |
+| `min-verdict` | No | `STRETCH` | Minimum verdict to apply the label |
+
+### Action outputs
+
+| Output | Description |
+|---|---|
+| `verdict` | The verdict string (e.g. `GO FOR IT`) |
+| `summary` | One-line summary of the assessment |
+| `label` | The label that was applied (if any) |
+
+---
+
+## Polling Mode — Personal issue notifications
+
+Fork this repo and it watches repos for new issues, emails you the newcomer-friendly ones.
+
+This is what the email looks like:
+
+![Email notification example](docs/email-example.png)
+
+It also watches for **reclaimed issues** — previously claimed but then abandoned (detected via unassignment, closed PRs without merge, or removed work-in-progress labels). These show up with `[RECLAIMED]` in the subject line.
+
+### Quick Setup — 2 minutes
+
+No server, no terminal, no installs. GitHub runs it on its own servers every 30 minutes — even when your laptop is off.
+
+#### 1. Fork this repo
 
 Click the **Fork** button at the top of this page. Make sure to tick **Copy the main branch only**.
 
-### 2. Set which repos to watch
+#### 2. Set which repos to watch
 
 1. In your fork: **Settings** → **Secrets and variables** → **Actions** → **Variables** tab → **New repository variable**
 2. Name: `WATCH_REPOS`, Value: everything after `github.com/` in the repo URL — for example:
@@ -54,35 +106,33 @@ Click the **Fork** button at the top of this page. Make sure to tick **Copy the 
 
 > **Important:** This goes under the **Variables** tab, not Secrets — they're on the same page but different tabs. If you add it as a Secret it will silently not work.
 
-### 3. Enable the workflow
+#### 3. Enable the workflow
 
 1. In your fork, go to the **Actions** tab → click **I understand my workflows, go ahead and enable them**
 2. Click **Issue Monitor** in the sidebar → **Enable workflow**
 
-### 4. Subscribe to email notifications
+#### 4. Subscribe to email notifications
 
 1. Go to your fork's main page
 2. Click **Watch** (top right) → **All Activity** → **Apply**
 
-That's it. Every 5 minutes GitHub checks your watched repos, analyzes new issues with an LLM, and creates a notification issue in your fork's Issues tab. You get an email because `github-actions[bot]` opens the issue, not you.
+That's it. Every 30 minutes GitHub checks your watched repos, analyzes new issues with an LLM, and creates a notification issue in your fork's Issues tab. You get an email because `github-actions[bot]` opens the issue, not you.
 
-> **Nothing showing up?** The repo you're watching might just not have had a new issue in the last 5 minutes — that's normal. You can also add busier repos like `golang/go` or `kubernetes/kubernetes` to `WATCH_REPOS` to see a notification faster. Issues that are already assigned, have linked open PRs or commits, have recent fork activity (someone working on a fix), have been claimed in comments, carry skip labels (spike, refactor, etc.), or that the LLM rates below your MIN_VERDICT threshold are silently skipped.
+> **Nothing showing up?** The repo you're watching might just not have had a new issue in the last 30 minutes — that's normal. You can also add busier repos like `golang/go` or `kubernetes/kubernetes` to `WATCH_REPOS` to see a notification faster. Issues that are already assigned, have linked open PRs or commits, have recent fork activity (someone is likely working on a fix before opening a PR), have been claimed in comments, carry skip labels (spike, refactor, etc.), or that the LLM rates below your MIN_VERDICT threshold are silently skipped.
 
 > **Want fewer notifications?** Add a `MIN_VERDICT` variable (same place as `WATCH_REPOS`) set to `GO FOR IT` or `JUMP ON IT`. You'll only get issues at that level or easier. Default is `STRETCH`.
 
 > **Watching a private repo?** Add a `MONITOR_TOKEN` secret with a GitHub PAT (classic, `repo` scope) so the monitor can access it.
 
----
+### Advanced Setup — 30+ minutes (self-hosted, polls every 30 sec)
 
-## Advanced Setup — 30+ minutes (self-hosted, polls every 30 sec)
-
-Most users don't need this — Quick Setup is enough. Use this if you want to poll every 30 seconds instead of every 5 minutes, or if you want to run on your own cluster instead of relying on GitHub Actions.
+Most users don't need this — Quick Setup is enough. Use this if you want to poll every 30 seconds instead of every 30 minutes, or if you want to run on your own cluster instead of relying on GitHub Actions.
 
 Run the Python app yourself. Polls every 30 seconds. Can be deployed on OpenShift/Kubernetes.
 
 This requires a **GitHub App** so the bot has its own identity (otherwise GitHub won't email you about issues you created yourself).
 
-### Step 1: Clone and install
+#### Step 1: Clone and install
 
 ```bash
 git clone https://github.com/YOUR-USERNAME/github-issue-monitor.git
@@ -90,19 +140,19 @@ cd github-issue-monitor
 pip install -r requirements.txt
 ```
 
-### Step 2: Create a GitHub token
+#### Step 2: Create a GitHub token
 
 1. Go to [github.com/settings/tokens](https://github.com/settings/tokens) → **Generate new token (classic)**
 2. Name it `issue-monitor`, tick **`repo`**, click **Generate token**, copy it
 
-### Step 3: Create a notification repo
+#### Step 3: Create a notification repo
 
 A private repo where the bot posts notifications.
 
 1. Go to [github.com/new](https://github.com/new), name it `my-issue-alerts`, set to **Private**, create it
 2. Go to the repo → **Watch** → **Custom** → tick **Issues** → **Apply**
 
-### Step 4: Create a GitHub App
+#### Step 4: Create a GitHub App
 
 1. Go to [github.com/settings/apps/new](https://github.com/settings/apps/new)
 2. **Name:** `issue-monitor-bot-YOURNAME` (must be globally unique)
@@ -112,13 +162,13 @@ A private repo where the bot posts notifications.
 6. Click **Create GitHub App**, note the **App ID**
 7. Scroll down → **Generate a private key** (downloads a `.pem` file)
 
-### Step 5: Install the app on your notification repo
+#### Step 5: Install the app on your notification repo
 
 1. In your app's settings → **Install App** → **Install** on your account
 2. Select **Only select repositories** → pick your notification repo → **Install**
 3. Note the **Installation ID** from the URL: `https://github.com/settings/installations/XXXXX`
 
-### Step 6: Run it
+#### Step 6: Run it
 
 ```bash
 export MONITOR_TOKEN="ghp_your_token"
@@ -133,7 +183,7 @@ python -m app.main
 
 Press **Ctrl+C** to stop.
 
-### Step 7 (Optional): Run 24/7 on OpenShift/Kubernetes
+#### Step 7 (Optional): Run 24/7 on OpenShift/Kubernetes
 
 ```bash
 podman build -t quay.io/your-username/github-issue-monitor:latest .
@@ -158,13 +208,11 @@ oc run issue-monitor \
 
 ## How It Works
 
-1. Polls the GitHub Issues API for each repo you're watching, using a persistent `since` timestamp to track what's already been seen
-2. Filters out pull requests, assigned issues, issues with linked open PRs or linked commits, issues referenced from a fork in the last 7 days (someone is likely working on a fix before opening a PR), issues claimed in comments (common phrases like "I'll work on this" are caught deterministically), and issues with skip labels (`spike`, `refactor`, `architecture`, `design`, `rfc`, `breaking-change`, `epic`, `state:pr-opened`, `state:in-progress`) — these are all enforced in Python before the LLM ever sees them
-3. Catches two kinds of opportunity: new unassigned issues, and reclaimed issues — detected via three signals: contributor unassigned, linked PR closed without merge, or work-in-progress labels (`state:in-progress`, `state:pr-opened`) removed. Fork references older than 7 days are ignored (likely abandoned).
-4. Checks labels — `good first issue` is an instant strong signal
-5. Sends the issue and its recent comments to GPT-4o via GitHub Models (free, configurable via `LLM_MODEL` env var) which assesses it on three axes: how clear the starting point is, whether the scope is contained, and whether the fix requires codebase familiarity a newcomer wouldn't have
-6. The LLM provides a second pass on claimed detection (for unusual wordings) and skips anything below your `MIN_VERDICT` threshold (default: STRETCH)
-7. Creates a notification issue in your fork — GitHub emails you because the bot opens it, not you
+1. **Assessment engine** — sends the issue title, body, labels, and comments to an LLM (GPT-4o via GitHub Models, free) which rates it on three axes: clarity of starting point, scope containment, and codebase familiarity required
+2. **Label signals** — `good first issue` and similar labels are passed as hints to the LLM for stronger signal
+3. **Claimed detection** — deterministic checks for assignment, linked PRs, fork activity, and comment patterns ("I'll work on this"), plus an LLM second pass for unusual wordings
+4. **Action mode** adds the `good first issue` label and posts a detailed assessment comment directly on the issue
+5. **Polling mode** creates a notification issue in your fork (GitHub emails you), with skip labels and reclaimed issue detection
 
 ## Costs
 
@@ -180,8 +228,7 @@ oc run issue-monitor \
 | `LLM analysis failed` | GitHub Models might be down — wait and retry |
 | Not getting emails | Watch the repo with **All Activity** (not Custom). Check the notification issue shows `github-actions[bot]` as the author, not your username. |
 | Actions workflow not running | Go to Actions tab and enable it |
-| No notifications appearing | OpenShell might just not have had new issues — try adding a busier repo to WATCH_REPOS |
-| Notifications delayed by hours | GitHub throttles scheduled workflows on low-activity forks — the `*/5` cron may run every 1-3 hours instead. Push a commit or trigger the workflow manually from the Actions tab to speed things up. |
+| No notifications appearing | The watched repo might just not have had new issues — try adding a busier repo to WATCH_REPOS |
 
 ## License
 
