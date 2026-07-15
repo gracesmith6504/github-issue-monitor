@@ -2,8 +2,6 @@ import logging
 
 import requests
 
-from app.core.verdict import VERDICT_EMOJI
-
 logger = logging.getLogger(__name__)
 
 GOOD_FIRST_ISSUE_LABEL = "good first issue"
@@ -48,8 +46,6 @@ def add_label(repo, issue_number, token, label_name=None):
 
 def post_comment(repo, issue_number, analysis, token):
     verdict = analysis.get("verdict", "")
-    emoji = VERDICT_EMOJI.get(verdict, "")
-    summary = analysis.get("summary", "")
     fix_description = analysis.get("fix_description", "")
     skills = analysis.get("skills_needed", [])
     reason = analysis.get("verdict_reason", "")
@@ -57,13 +53,17 @@ def post_comment(repo, issue_number, analysis, token):
     skills_str = ", ".join(skills) if skills else "None identified"
 
     body = (
-        f"### {emoji} Newcomer Assessment: **{verdict}**\n\n"
-        f"**Summary:** {summary}\n\n"
-        f"**What to fix:** {fix_description}\n\n"
-        f"**Skills needed:** {skills_str}\n\n"
-        f"**Why this verdict:** {reason}\n\n"
-        f"---\n"
-        f"*Assessed automatically by [github-issue-monitor](https://github.com/gracesmith6504/github-issue-monitor)*"
+        f"> **\U0001f4cb newcomer-assess**\n"
+        f">\n"
+        f"> ## Contributor Difficulty: {verdict}\n"
+        f">\n"
+        f"> **Approach:** {fix_description}\n"
+        f">\n"
+        f"> **Skills:** {skills_str}\n"
+        f">\n"
+        f"> **Why:** {reason}\n"
+        f">\n"
+        f"> *[github-issue-monitor](https://github.com/gracesmith6504/github-issue-monitor)*"
     )
 
     url = f"https://api.github.com/repos/{repo}/issues/{issue_number}/comments"

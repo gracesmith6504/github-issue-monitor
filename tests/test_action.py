@@ -102,9 +102,10 @@ class TestLabeler:
             post_comment("org/repo", 42, analysis, "fake-token")
             call_json = mock_requests.post.call_args[1]["json"]
             assert "GO FOR IT" in call_json["body"]
-            assert "Simple fix" in call_json["body"]
             assert "Edit the README" in call_json["body"]
             assert "Markdown" in call_json["body"]
+            assert "newcomer-assess" in call_json["body"]
+            assert "Just a typo" in call_json["body"]
 
 
 class TestActionMain:
