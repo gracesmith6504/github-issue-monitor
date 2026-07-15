@@ -1,5 +1,5 @@
-from unittest.mock import patch, MagicMock, call
-from app.main import run_once
+from unittest.mock import patch, MagicMock
+from app.modes.polling.main import run_once
 
 
 def _make_config(**overrides):
@@ -26,11 +26,11 @@ class TestVerdictThreshold:
 
         poller = MagicMock()
         poller.poll.return_value = issues
+        llm_client = MagicMock()
 
-        with patch("app.main.analyze_issue", return_value=analysis), \
-             patch("app.main.notifier") as mock_notifier, \
-             patch("app.main.logger"):
-            run_once(config, poller, "2024-01-01T00:00:00Z")
+        with patch("app.modes.polling.main.assess_issue", return_value=analysis), \
+             patch("app.modes.polling.main.notifier") as mock_notifier:
+            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
             mock_notifier.notify_simple.assert_not_called()
 
     def test_includes_at_threshold(self):
@@ -40,11 +40,11 @@ class TestVerdictThreshold:
 
         poller = MagicMock()
         poller.poll.return_value = issues
+        llm_client = MagicMock()
 
-        with patch("app.main.analyze_issue", return_value=analysis), \
-             patch("app.main.notifier") as mock_notifier, \
-             patch("app.main.logger"):
-            run_once(config, poller, "2024-01-01T00:00:00Z")
+        with patch("app.modes.polling.main.assess_issue", return_value=analysis), \
+             patch("app.modes.polling.main.notifier") as mock_notifier:
+            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
             mock_notifier.notify_simple.assert_called_once()
 
     def test_includes_above_threshold(self):
@@ -54,11 +54,11 @@ class TestVerdictThreshold:
 
         poller = MagicMock()
         poller.poll.return_value = issues
+        llm_client = MagicMock()
 
-        with patch("app.main.analyze_issue", return_value=analysis), \
-             patch("app.main.notifier") as mock_notifier, \
-             patch("app.main.logger"):
-            run_once(config, poller, "2024-01-01T00:00:00Z")
+        with patch("app.modes.polling.main.assess_issue", return_value=analysis), \
+             patch("app.modes.polling.main.notifier") as mock_notifier:
+            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
             mock_notifier.notify_simple.assert_called_once()
 
     def test_skips_claimed_issues(self):
@@ -68,11 +68,11 @@ class TestVerdictThreshold:
 
         poller = MagicMock()
         poller.poll.return_value = issues
+        llm_client = MagicMock()
 
-        with patch("app.main.analyze_issue", return_value=analysis), \
-             patch("app.main.notifier") as mock_notifier, \
-             patch("app.main.logger"):
-            run_once(config, poller, "2024-01-01T00:00:00Z")
+        with patch("app.modes.polling.main.assess_issue", return_value=analysis), \
+             patch("app.modes.polling.main.notifier") as mock_notifier:
+            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
             mock_notifier.notify_simple.assert_not_called()
 
     def test_skips_failed_analysis(self):
@@ -81,23 +81,23 @@ class TestVerdictThreshold:
 
         poller = MagicMock()
         poller.poll.return_value = issues
+        llm_client = MagicMock()
 
-        with patch("app.main.analyze_issue", return_value=None), \
-             patch("app.main.notifier") as mock_notifier, \
-             patch("app.main.logger"):
-            run_once(config, poller, "2024-01-01T00:00:00Z")
+        with patch("app.modes.polling.main.assess_issue", return_value=None), \
+             patch("app.modes.polling.main.notifier") as mock_notifier:
+            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
             mock_notifier.notify_simple.assert_not_called()
 
     def test_passes_limit_to_poller(self):
         config = _make_config(max_issues_per_repo=15)
         poller = MagicMock()
         poller.poll.return_value = []
+        llm_client = MagicMock()
 
-        with patch("app.main.logger"):
-            run_once(config, poller, "2024-01-01T00:00:00Z")
-            poller.poll.assert_called_once_with(
-                "org/repo", "2024-01-01T00:00:00Z", "user/alerts", limit=15
-            )
+        run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
+        poller.poll.assert_called_once_with(
+            "org/repo", "2024-01-01T00:00:00Z", "user/alerts", limit=15
+        )
 
     def test_uses_analysis_delay(self):
         config = _make_config(analysis_delay=2)
@@ -108,10 +108,10 @@ class TestVerdictThreshold:
         analysis = {"verdict": "JUMP ON IT", "claimed": False}
         poller = MagicMock()
         poller.poll.return_value = issues
+        llm_client = MagicMock()
 
-        with patch("app.main.analyze_issue", return_value=analysis), \
-             patch("app.main.notifier"), \
-             patch("app.main.logger"), \
-             patch("app.main.time") as mock_time:
-            run_once(config, poller, "2024-01-01T00:00:00Z")
+        with patch("app.modes.polling.main.assess_issue", return_value=analysis), \
+             patch("app.modes.polling.main.notifier"), \
+             patch("app.modes.polling.main.time") as mock_time:
+            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
             mock_time.sleep.assert_called_once_with(2)

@@ -1,6 +1,7 @@
 from unittest.mock import patch, MagicMock
 import json
-from app.analyzer import analyze_issue, GOOD_FIRST_ISSUE_LABELS, APPROACHABLE_LABELS
+from app.analyzer import analyze_issue
+from app.core.hints import GOOD_FIRST_ISSUE_LABELS, APPROACHABLE_LABELS
 
 
 def _make_issue(labels=None, trigger=None, reclaimed_signals=None):
@@ -41,13 +42,13 @@ def _mock_llm_response(verdict="GO FOR IT", claimed=False):
 class TestAnalyzeIssue:
     def test_returns_analysis_for_valid_issue(self):
         issue = _make_issue()
-        with patch("app.analyzer.OpenAI", _mock_llm_response("JUMP ON IT")):
+        with patch("app.core.llm.OpenAI", _mock_llm_response("JUMP ON IT")):
             result = analyze_issue(issue, "fake-token", "gpt-4o")
         assert result["verdict"] == "JUMP ON IT"
 
     def test_good_first_issue_label_passes_hint(self):
         issue = _make_issue(labels=["good first issue"])
-        with patch("app.analyzer.OpenAI", _mock_llm_response()) as mock_openai:
+        with patch("app.core.llm.OpenAI", _mock_llm_response()) as mock_openai:
             analyze_issue(issue, "fake-token", "gpt-4o")
             call_args = mock_openai.return_value.chat.completions.create.call_args
             user_msg = call_args[1]["messages"][1]["content"]
@@ -55,7 +56,7 @@ class TestAnalyzeIssue:
 
     def test_approachable_label_passes_hint(self):
         issue = _make_issue(labels=["documentation"])
-        with patch("app.analyzer.OpenAI", _mock_llm_response()) as mock_openai:
+        with patch("app.core.llm.OpenAI", _mock_llm_response()) as mock_openai:
             analyze_issue(issue, "fake-token", "gpt-4o")
             call_args = mock_openai.return_value.chat.completions.create.call_args
             user_msg = call_args[1]["messages"][1]["content"]
@@ -63,7 +64,7 @@ class TestAnalyzeIssue:
 
     def test_reclaimed_issue_passes_hint(self):
         issue = _make_issue(trigger="reclaimed", reclaimed_signals=["unassigned"])
-        with patch("app.analyzer.OpenAI", _mock_llm_response()) as mock_openai:
+        with patch("app.core.llm.OpenAI", _mock_llm_response()) as mock_openai:
             analyze_issue(issue, "fake-token", "gpt-4o")
             call_args = mock_openai.return_value.chat.completions.create.call_args
             user_msg = call_args[1]["messages"][1]["content"]
@@ -73,7 +74,7 @@ class TestAnalyzeIssue:
         issue = _make_issue()
         mock_client = MagicMock()
         mock_client.return_value.chat.completions.create.side_effect = Exception("API down")
-        with patch("app.analyzer.OpenAI", mock_client), patch("time.sleep"):
+        with patch("app.core.llm.OpenAI", mock_client), patch("time.sleep"):
             result = analyze_issue(issue, "fake-token", "gpt-4o")
         assert result is None
 
@@ -92,7 +93,7 @@ class TestRetry:
             Exception("timeout"),
             good_response,
         ]
-        with patch("app.analyzer.OpenAI", mock_client), patch("time.sleep"):
+        with patch("app.core.llm.OpenAI", mock_client), patch("time.sleep"):
             result = analyze_issue(issue, "fake-token", "gpt-4o")
         assert result is not None
         assert result["verdict"] == "STRETCH"
@@ -104,7 +105,7 @@ class TestRetry:
         bad_response.choices = [MagicMock()]
         bad_response.choices[0].message.content = "not json at all"
         mock_client.return_value.chat.completions.create.return_value = bad_response
-        with patch("app.analyzer.OpenAI", mock_client):
+        with patch("app.core.llm.OpenAI", mock_client):
             result = analyze_issue(issue, "fake-token", "gpt-4o")
         assert result is None
         assert mock_client.return_value.chat.completions.create.call_count == 1
