@@ -1,0 +1,53 @@
+name: 'Newcomer Issue Assessment'
+description: 'Assess GitHub issues for newcomer-friendliness using an LLM and apply verdict labels'
+
+inputs:
+  github-token:
+    description: 'GitHub token with issues:write permission'
+    required: true
+  llm-token:
+    description: 'API key for GitHub Models LLM'
+    required: true
+  llm-model:
+    description: 'LLM model to use for assessment'
+    required: false
+    default: 'gpt-4o'
+  min-verdict:
+    description: 'Minimum verdict to apply a label (JUMP ON IT, GO FOR IT, STRETCH, LONG SHOT, NOT YET)'
+    required: false
+    default: 'STRETCH'
+
+outputs:
+  verdict:
+    description: 'The verdict string (e.g. GO FOR IT)'
+    value: ${{ steps.assess.outputs.verdict }}
+  summary:
+    description: 'One-line summary of the assessment'
+    value: ${{ steps.assess.outputs.summary }}
+  label:
+    description: 'The label that was applied (e.g. newcomer:go-for-it)'
+    value: ${{ steps.assess.outputs.label }}
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: ${{ github.action_path }}/requirements.txt
+
+    - name: Install dependencies
+      shell: bash
+      run: pip install -r ${{ github.action_path }}/requirements.txt
+
+    - name: Assess issue
+      id: assess
+      shell: bash
+      env:
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_LLM_TOKEN: ${{ inputs.llm-token }}
+        INPUT_LLM_MODEL: ${{ inputs.llm-model }}
+        INPUT_MIN_VERDICT: ${{ inputs.min-verdict }}
+        PYTHONPATH: ${{ github.action_path }}
+      run: python -m app.modes.action.main

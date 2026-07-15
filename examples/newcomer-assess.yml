@@ -1,0 +1,20 @@
+# Copy this file to .github/workflows/newcomer-assess.yml in your repo.
+# Set the LLM_TOKEN secret in your repo settings (GitHub Models API key).
+
+name: Assess newcomer-friendliness
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  assess:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gracesmith6504/github-issue-monitor@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          llm-token: ${{ secrets.LLM_TOKEN }}
