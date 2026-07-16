@@ -5,9 +5,9 @@ and skipped by default. Run it explicitly:
 
     pytest tests/test_calibration.py -m slow
 
-Set CALIBRATION_MODEL to override the model (default: gpt-4o-mini):
+Set CALIBRATION_MODEL to override the model (default: gpt-4o):
 
-    CALIBRATION_MODEL=gpt-4o pytest tests/test_calibration.py -m slow
+    CALIBRATION_MODEL=gpt-4o-mini pytest tests/test_calibration.py -m slow
 """
 import json
 import os
@@ -76,7 +76,7 @@ class TestCalibration:
     @pytest.fixture(autouse=True, scope="class")
     def setup(self, request):
         token = _get_token()
-        model = os.environ.get("CALIBRATION_MODEL", "gpt-4o-mini")
+        model = os.environ.get("CALIBRATION_MODEL", "gpt-4o")
         profile = load_profile("openshell")
         system_prompt = build_system_prompt(profile)
         client = LLMClient(
