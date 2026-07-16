@@ -1,7 +1,7 @@
 from app.core.assessment import assess_issue
-from app.core.llm import GitHubModelsClient
+from app.core.llm import LLMClient
 
 
 def analyze_issue(issue, token, model):
-    client = GitHubModelsClient(api_key=token)
+    client = LLMClient(api_key=token)
     return assess_issue(issue, client, model)

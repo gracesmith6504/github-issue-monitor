@@ -7,15 +7,15 @@ from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 
-GITHUB_MODELS_BASE_URL = "https://models.github.ai/inference"
+DEFAULT_BASE_URL = "https://models.github.ai/inference"
 
 
-class LLMClient(Protocol):
+class LLMClientProtocol(Protocol):
     def assess(self, system_prompt: str, user_prompt: str, model: str) -> dict | None: ...
 
 
-class GitHubModelsClient:
-    def __init__(self, api_key: str, base_url: str = GITHUB_MODELS_BASE_URL):
+class LLMClient:
+    def __init__(self, api_key: str, base_url: str = DEFAULT_BASE_URL):
         self._client = OpenAI(base_url=base_url, api_key=api_key)
 
     def assess(self, system_prompt: str, user_prompt: str, model: str) -> dict | None:

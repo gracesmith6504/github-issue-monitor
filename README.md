@@ -33,7 +33,7 @@ Add this to a repo and every new issue gets assessed automatically. Newcomer-fri
 
 ### Setup
 
-1. Add an `LLM_TOKEN` secret to the target repo (Settings → Secrets → Actions) — a GitHub token with access to [GitHub Models](https://github.com/marketplace/models)
+1. Add an `LLM_TOKEN` secret to the target repo (Settings → Secrets → Actions) — an API key for an OpenAI-compatible LLM endpoint (e.g. [GitHub Models](https://github.com/marketplace/models), OpenRouter, or any OpenAI-compatible provider)
 
 2. Create `.github/workflows/newcomer-assess.yml` in the target repo:
 
@@ -64,9 +64,11 @@ That's it. When someone opens an issue, the action runs the LLM assessment and l
 | Input | Required | Default | Description |
 |---|---|---|---|
 | `github-token` | Yes | — | Token with `issues:write` permission |
-| `llm-token` | Yes | — | GitHub Models API key |
+| `llm-token` | Yes | — | API key for the LLM endpoint |
+| `llm-endpoint` | No | GitHub Models | OpenAI-compatible API endpoint URL |
 | `llm-model` | No | `gpt-4o` | LLM model to use |
 | `min-verdict` | No | `STRETCH` | Minimum verdict to apply the label |
+| `repo-profile` | No | — | Repo profile for calibrated assessment (e.g. `openshell`) |
 
 ### Action outputs
 
@@ -208,7 +210,7 @@ oc run issue-monitor \
 
 ## How It Works
 
-1. **Assessment engine** — sends the issue title, body, labels, and comments to an LLM (GPT-4o via GitHub Models, free) which rates it on three axes: clarity of starting point, scope containment, and codebase familiarity required
+1. **Assessment engine** — sends the issue title, body, labels, and comments to an LLM (any OpenAI-compatible endpoint — GitHub Models, OpenRouter, etc.) which rates it on three axes: clarity of starting point, scope containment, and codebase familiarity required
 2. **Label signals** — `good first issue` and similar labels are passed as hints to the LLM for stronger signal
 3. **Claimed detection** — deterministic checks for assignment, linked PRs, fork activity, and comment patterns ("I'll work on this"), plus an LLM second pass for unusual wordings
 4. **Action mode** adds the `good first issue` label and posts a detailed assessment comment directly on the issue
@@ -216,7 +218,7 @@ oc run issue-monitor \
 
 ## Costs
 
-**Free.** GitHub API, GitHub Models LLM, and GitHub Actions are all free for public repos. GitHub Models has rate limits — if you watch many busy repos you may hit them, but for a handful of repos it's not an issue.
+**Free.** GitHub API and GitHub Actions are free for public repos. The LLM endpoint is configurable — GitHub Models and OpenRouter both offer free tiers. If you watch many busy repos you may hit rate limits, but for a handful of repos it's not an issue.
 
 ## Troubleshooting
 
@@ -225,7 +227,7 @@ oc run issue-monitor \
 | `ERROR: MONITOR_TOKEN environment variable is required` | Only applies to Advanced Setup — check your secret is named `MONITOR_TOKEN` exactly. Quick Setup users should never see this. |
 | `ERROR: WATCH_REPOS environment variable is required` | You added `WATCH_REPOS` as a Secret instead of a Variable — go back and add it under the **Variables** tab |
 | `Failed to create notification: 403` | GitHub App isn't installed on the notification repo (Advanced Setup only) |
-| `LLM analysis failed` | GitHub Models might be down — wait and retry |
+| `LLM analysis failed` | Your LLM endpoint might be down or rate-limited — wait and retry |
 | Not getting emails | Watch the repo with **All Activity** (not Custom). Check the notification issue shows `github-actions[bot]` as the author, not your username. |
 | Actions workflow not running | Go to Actions tab and enable it |
 | No notifications appearing | The watched repo might just not have had new issues — try adding a busier repo to WATCH_REPOS |

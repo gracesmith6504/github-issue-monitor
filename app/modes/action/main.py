@@ -4,7 +4,7 @@ import os
 import sys
 
 from app.core.assessment import assess_issue
-from app.core.llm import GitHubModelsClient
+from app.core.llm import LLMClient
 from app.core.profiles import load_profile
 from app.core.prompt import build_system_prompt
 from app.core.verdict import meets_threshold
@@ -59,6 +59,7 @@ def main():
         logger.error("github-token input is required")
         sys.exit(1)
 
+    llm_endpoint = os.environ.get("INPUT_LLM_ENDPOINT") or os.environ.get("INPUT_LLM-ENDPOINT") or ""
     model = os.environ.get("INPUT_LLM_MODEL") or os.environ.get("INPUT_LLM-MODEL") or "gpt-4o"
     min_verdict = (os.environ.get("INPUT_MIN_VERDICT") or os.environ.get("INPUT_MIN-VERDICT") or "STRETCH").upper()
 
@@ -78,7 +79,10 @@ def main():
 
     logger.info(f"Assessing: {issue_dict['repo']} #{issue_dict['number']} — {issue_dict['title']}")
 
-    llm_client = GitHubModelsClient(api_key=llm_token)
+    client_kwargs = {"api_key": llm_token}
+    if llm_endpoint:
+        client_kwargs["base_url"] = llm_endpoint
+    llm_client = LLMClient(**client_kwargs)
     analysis = assess_issue(issue_dict, llm_client, model, system_prompt=system_prompt)
 
     if not analysis:

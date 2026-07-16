@@ -1,7 +1,7 @@
 import logging
 
 from app.core.hints import build_hint
-from app.core.llm import LLMClient
+from app.core.llm import LLMClientProtocol as LLMClient
 from app.core.prompt import SYSTEM_PROMPT, build_user_prompt
 
 logger = logging.getLogger(__name__)

@@ -8,6 +8,10 @@ inputs:
   llm-token:
     description: 'API key for GitHub Models LLM'
     required: true
+  llm-endpoint:
+    description: 'OpenAI-compatible API endpoint URL (default: GitHub Models)'
+    required: false
+    default: 'https://models.github.ai/inference'
   llm-model:
     description: 'LLM model to use for assessment'
     required: false
@@ -49,6 +53,7 @@ runs:
       env:
         INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
         INPUT_LLM_TOKEN: ${{ inputs.llm-token }}
+        INPUT_LLM_ENDPOINT: ${{ inputs.llm-endpoint }}
         INPUT_LLM_MODEL: ${{ inputs.llm-model }}
         INPUT_MIN_VERDICT: ${{ inputs.min-verdict }}
         INPUT_REPO_PROFILE: ${{ inputs.repo-profile }}

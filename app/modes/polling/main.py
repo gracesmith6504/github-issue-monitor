@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone
 
 from app.core.assessment import assess_issue
-from app.core.llm import GitHubModelsClient
+from app.core.llm import LLMClient
 from app.core.profiles import find_profile_for_repo
 from app.core.prompt import build_system_prompt
 from app.core.verdict import meets_threshold
@@ -69,7 +69,10 @@ def main():
     logger.info(f"Checking issues since: {config['last_checked']}")
 
     poller = Poller(config["monitor_token"])
-    llm_client = GitHubModelsClient(api_key=config["monitor_token"])
+    client_kwargs = {"api_key": config["monitor_token"]}
+    if config.get("llm_endpoint"):
+        client_kwargs["base_url"] = config["llm_endpoint"]
+    llm_client = LLMClient(**client_kwargs)
 
     if os.environ.get("RUN_ONCE") == "true":
         logger.info("Running single pass (GitHub Actions mode)")
