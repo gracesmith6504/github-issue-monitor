@@ -1,5 +1,5 @@
 from unittest.mock import patch, MagicMock
-from app.notifier import _post_notification, VERDICT_EMOJI, VERDICT_TO_LABEL
+from app.modes.polling.notifier import _post_notification, VERDICT_EMOJI, VERDICT_TO_LABEL
 
 
 def _make_issue(number=1, title="Fix bug", repo="org/repo", trigger=None, reclaimed_signals=None):

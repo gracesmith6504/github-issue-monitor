@@ -124,7 +124,7 @@ class Poller:
                             result["abandoned_signals"].append("unassigned")
 
                     elif event_type == "unlabeled":
-                        label_name = event.get("label", {}).get("name", "")
+                        label_name = event.get("label", {}).get("name", "").lower()
                         if label_name in RECLAIMED_LABELS and event.get("created_at", "") >= since:
                             result["abandoned_signals"].append(f"removed-label:{label_name}")
 

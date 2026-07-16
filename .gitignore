@@ -7,3 +7,4 @@ build/
 .venv/
 profile.md
 *.pem
+k8s/secret.yaml

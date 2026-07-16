@@ -1,5 +1,5 @@
 from unittest.mock import patch, MagicMock
-from app.poller import Poller, SKIP_LABELS
+from app.modes.polling.poller import Poller, SKIP_LABELS
 
 
 def _make_issue(number=1, title="Fix bug", assignees=None, labels=None,

@@ -31,6 +31,9 @@ def assess_issue(
     for axis in ("starting_point", "scope", "familiarity"):
         analysis[axis] = clamp_score(analysis.get(axis))
 
+    if not isinstance(analysis.get("skills_needed"), list):
+        analysis["skills_needed"] = [str(analysis.get("skills_needed", "Unknown"))]
+
     thresholds = profile.verdict_thresholds if profile else None
     verdict, total = compute_verdict(
         analysis["starting_point"], analysis["scope"], analysis["familiarity"],
