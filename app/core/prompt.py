@@ -119,7 +119,7 @@ def build_system_prompt(profile: RepoProfile | None = None) -> str:
     return "\n".join(sections)
 
 
-def build_user_prompt(issue: dict, hint: str | None) -> str:
+def build_user_prompt(issue: dict, hint: str | None, profile: RepoProfile | None = None) -> str:
     label_note = f"\nNote: {hint}\n" if hint else ""
 
     comments = issue.get("comments", [])
@@ -129,7 +129,7 @@ def build_user_prompt(issue: dict, hint: str | None) -> str:
     else:
         comments_section = "(no comments)"
 
-    repo_lang = issue.get("repo_language")
+    repo_lang = (profile.repo_language if profile and profile.repo_language else None) or issue.get("repo_language")
     lang_note = (
         f"\nThis repository is primarily written in {repo_lang}. "
         f"The fix will most likely be in {repo_lang}, even if code samples "
@@ -138,7 +138,9 @@ def build_user_prompt(issue: dict, hint: str | None) -> str:
         else ""
     )
 
-    return f"""Issue from {issue['repo']}:
+    repo_name = (profile.repo_display_name if profile and profile.repo_display_name else None) or issue['repo']
+
+    return f"""Issue from {repo_name}:
 
 Title: {issue['title']}
 {lang_note}

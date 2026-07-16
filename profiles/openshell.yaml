@@ -1,6 +1,9 @@
 repos:
   - "NVIDIA/OpenShell"
 
+repo_language: Rust
+repo_display_name: "NVIDIA/OpenShell"
+
 calibration: |
   CRITICAL context for this repository:
   - Issues are written by AI agents and are ALL detailed with file paths,

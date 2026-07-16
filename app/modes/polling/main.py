@@ -36,7 +36,7 @@ def run_once(config, poller, llm_client, run_start):
             logger.info(f"Analyzing: {issue['repo']} #{issue['number']} — {issue['title']}")
 
             analysis = assess_issue(issue, llm_client, config["llm_model"],
-                                    system_prompt=system_prompt)
+                                    system_prompt=system_prompt, profile=profile)
             if not analysis:
                 logger.warning(f"Skipping {issue['repo']} #{issue['number']} — analysis failed")
                 continue

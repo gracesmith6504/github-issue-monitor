@@ -83,7 +83,7 @@ def main():
     if llm_endpoint:
         client_kwargs["base_url"] = llm_endpoint
     llm_client = LLMClient(**client_kwargs)
-    analysis = assess_issue(issue_dict, llm_client, model, system_prompt=system_prompt)
+    analysis = assess_issue(issue_dict, llm_client, model, system_prompt=system_prompt, profile=profile)
 
     if not analysis:
         logger.warning("Assessment failed, exiting gracefully")
