@@ -91,6 +91,21 @@ examples:
   - number: 2292
     scores: "SP=3 Scope=1 Fam=2"
     reason: "This is an RFC/design proposal to create an SDK conformance framework with tiers, scoring, and automation. Despite mentioning specific files, the real work is designing the framework itself — open questions about approach make this Scope=1. You need project-specific knowledge of the SDK ecosystem and how teams use it (Fam=2)."
+  - number: 2275
+    scores: "SP=5 Scope=5 Fam=5"
+    reason: "The exact change is described: remove a stray bracket in one doc file. Mechanical fix, no codebase knowledge (Fam=5)."
+  - number: 2229
+    scores: "SP=3 Scope=3 Fam=2"
+    reason: "The issue describes a symptom (black screen after shell exit) but not the cause. The fix required understanding TUI redraw lifecycle and terminal state restoration — you'd need to investigate how ratatui interacts with shell subprocesses (SP=3). Done by a core maintainer in 59 changed lines (Scope=3, Fam=2)."
+  - number: 1998
+    scores: "SP=3 Scope=2 Fam=1"
+    reason: "VM driver + init process + seccomp policy interaction. Root cause is described but fixing it required understanding how the sandbox supervisor initializes inside a VM, how kernel security policies are applied, and how egress rules propagate — deep VM driver internals (Fam=1). 6 files, 93 lines changed by a core maintainer (Scope=2)."
+  - number: 2083
+    scores: "SP=3 Scope=2 Fam=1"
+    reason: "Rejecting JSON-RPC batches sounds contained but required a typed inspection-error refactor across relay, OPA, and proxy layers — 243 lines changed across 3 files. You need to understand how JSON-RPC messages flow through the proxy pipeline (Fam=1). The PR was much larger than the issue implies (Scope=2)."
+  - number: 1696
+    scores: "SP=2 Scope=1 Fam=1"
+    reason: "GPU sandboxes fail because seccomp blocks memfd_secret syscall. Fixing this requires understanding the intersection of GPU initialization, kernel seccomp policies, and the sandbox security model — three hard domains at once. No clear fix path described, multiple possible approaches (SP=2, Scope=1, Fam=1)."
 
 auto_label: false
 

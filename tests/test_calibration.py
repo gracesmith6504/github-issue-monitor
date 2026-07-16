@@ -36,6 +36,11 @@ EXPECTED = {
     2309: (3, 2, 2, "STRETCH"),
     2292: (3, 1, 2, "STRETCH"),
     2278: (3, 2, 2, "STRETCH"),
+    2275: (5, 5, 5, "JUMP ON IT"),
+    2229: (3, 3, 2, "STRETCH"),
+    1998: (3, 2, 1, "LONG SHOT"),
+    2083: (3, 2, 1, "LONG SHOT"),
+    1696: (2, 1, 1, "NOT YET"),
 }
 
 
