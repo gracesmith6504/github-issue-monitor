@@ -22,12 +22,24 @@ def _make_issue(labels=None, trigger=None, reclaimed_signals=None):
 
 
 def _mock_llm_response(verdict="GO FOR IT", claimed=False):
+    scores = {
+        "JUMP ON IT": (5, 5, 5),
+        "GO FOR IT": (4, 4, 4),
+        "STRETCH": (3, 3, 3),
+        "LONG SHOT": (2, 2, 2),
+        "NOT YET": (1, 1, 1),
+    }
+    sp, sc, fm = scores.get(verdict, (3, 3, 3))
     analysis = {
         "summary": "Fix a typo.",
         "fix_description": "Edit README.md.",
         "skills_needed": ["Markdown"],
-        "verdict": verdict,
-        "verdict_reason": "Simple text change.",
+        "starting_point": sp,
+        "starting_point_reason": "Clear location.",
+        "scope": sc,
+        "scope_reason": "Small change.",
+        "familiarity": fm,
+        "familiarity_reason": "No codebase knowledge needed.",
         "claimed": claimed,
     }
     mock_client = MagicMock()
@@ -87,7 +99,10 @@ class TestRetry:
         good_response.choices = [MagicMock()]
         good_response.choices[0].message.content = json.dumps({
             "summary": "s", "fix_description": "f", "skills_needed": [],
-            "verdict": "STRETCH", "verdict_reason": "r", "claimed": False,
+            "starting_point": 3, "starting_point_reason": "r",
+            "scope": 3, "scope_reason": "r",
+            "familiarity": 3, "familiarity_reason": "r",
+            "claimed": False,
         })
         mock_client.return_value.chat.completions.create.side_effect = [
             Exception("timeout"),

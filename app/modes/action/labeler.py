@@ -2,6 +2,8 @@ import logging
 
 import requests
 
+from app.core.scoring import format_scores
+
 logger = logging.getLogger(__name__)
 
 GOOD_FIRST_ISSUE_LABEL = "good first issue"
@@ -46,11 +48,12 @@ def add_label(repo, issue_number, token, label_name=None):
 
 def post_comment(repo, issue_number, analysis, token, suggested_label=None):
     verdict = analysis.get("verdict", "")
+    total = analysis.get("total_score", 0)
     fix_description = analysis.get("fix_description", "")
     skills = analysis.get("skills_needed", [])
-    reason = analysis.get("verdict_reason", "")
 
     skills_str = ", ".join(skills) if skills else "None identified"
+    scores_block = format_scores(analysis, prefix="> ")
 
     label_line = ""
     if suggested_label:
@@ -59,13 +62,13 @@ def post_comment(repo, issue_number, analysis, token, suggested_label=None):
     body = (
         f"> **\U0001f4cb newcomer-assess**\n"
         f">\n"
-        f"> ## Contributor Difficulty: {verdict}\n"
+        f"> ## Contributor Difficulty: {verdict} ({total}/15)\n"
+        f">\n"
+        f"{scores_block}\n"
         f">\n"
         f"> **Approach:** {fix_description}\n"
         f">\n"
         f"> **Skills:** {skills_str}\n"
-        f">\n"
-        f"> **Why:** {reason}\n"
         f"{label_line}"
         f">\n"
         f"> *[github-issue-monitor](https://github.com/gracesmith6504/github-issue-monitor)*"

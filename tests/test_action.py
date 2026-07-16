@@ -92,20 +92,27 @@ class TestLabeler:
     def test_post_comment_includes_verdict(self):
         analysis = {
             "verdict": "GO FOR IT",
+            "total_score": 12,
             "summary": "Simple fix",
             "fix_description": "Edit the README",
             "skills_needed": ["Markdown"],
-            "verdict_reason": "Just a typo",
+            "starting_point": 4,
+            "starting_point_reason": "File specified",
+            "scope": 4,
+            "scope_reason": "Small change",
+            "familiarity": 4,
+            "familiarity_reason": "Isolated code",
         }
         with patch("app.modes.action.labeler.requests") as mock_requests:
             mock_requests.post.return_value = MagicMock(status_code=201)
             post_comment("org/repo", 42, analysis, "fake-token")
             call_json = mock_requests.post.call_args[1]["json"]
             assert "GO FOR IT" in call_json["body"]
+            assert "12/15" in call_json["body"]
             assert "Edit the README" in call_json["body"]
             assert "Markdown" in call_json["body"]
             assert "newcomer-assess" in call_json["body"]
-            assert "Just a typo" in call_json["body"]
+            assert "Starting Point: 4/5" in call_json["body"]
 
 
 class TestActionMain:

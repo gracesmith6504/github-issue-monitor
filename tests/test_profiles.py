@@ -20,7 +20,7 @@ class TestLoadProfile:
             "domains": "Test domains",
             "examples": [{"number": 1, "verdict": "STRETCH", "reason": "test"}],
             "label_map": {"JUMP ON IT": "good first issue"},
-            "verdict_overrides": {"STRETCH": "Custom stretch text"},
+            "verdict_thresholds": {"JUMP ON IT": 13, "GO FOR IT": 10, "STRETCH": 7, "LONG SHOT": 5},
         })
         profile = load_profile("test", profiles_dir=tmp_path)
         assert profile.name == "test"
@@ -31,7 +31,7 @@ class TestLoadProfile:
         assert len(profile.examples) == 1
         assert profile.examples[0]["number"] == 1
         assert profile.label_map == {"JUMP ON IT": "good first issue"}
-        assert "STRETCH" in profile.verdict_overrides
+        assert profile.verdict_thresholds["JUMP ON IT"] == 13
 
     def test_missing_file_raises(self, tmp_path):
         with pytest.raises(FileNotFoundError):
@@ -55,7 +55,7 @@ class TestLoadProfile:
         assert profile.domains == ""
         assert profile.examples == []
         assert profile.label_map == {}
-        assert profile.verdict_overrides == {}
+        assert profile.verdict_thresholds is None
         assert profile.auto_label is True
 
     def test_auto_label_defaults_true(self, tmp_path):
@@ -126,21 +126,20 @@ class TestBuildSystemPrompt:
     def test_profile_appends_examples(self):
         profile = RepoProfile(
             name="t", repos=["x"],
-            examples=[{"number": 42, "verdict": "GO FOR IT", "reason": "Simple fix"}],
+            examples=[{"number": 42, "scores": "SP=5 Scope=4 Fam=3", "reason": "Simple fix"}],
         )
         result = build_system_prompt(profile)
-        assert "HISTORICAL CALIBRATION EXAMPLES" in result
+        assert "SCORING CALIBRATION EXAMPLES" in result
         assert "Issue #42" in result
-        assert "GO FOR IT" in result
+        assert "SP=5" in result
 
-    def test_profile_appends_verdict_overrides(self):
+    def test_profile_with_verdict_thresholds(self):
         profile = RepoProfile(
             name="t", repos=["x"],
-            verdict_overrides={"STRETCH": "Custom stretch definition"},
+            verdict_thresholds={"JUMP ON IT": 14, "GO FOR IT": 11, "STRETCH": 8, "LONG SHOT": 5},
         )
         result = build_system_prompt(profile)
-        assert "ADJUSTED VERDICT CRITERIA" in result
-        assert "Custom stretch definition" in result
+        assert result == BASE_SYSTEM_PROMPT
 
     def test_empty_sections_omitted(self):
         profile = RepoProfile(name="t", repos=["x"], calibration="Only this")
@@ -154,7 +153,6 @@ class TestBuildSystemPrompt:
             name="t", repos=["x"],
             calibration="cal", architecture="arch", domains="dom",
             examples=[{"number": 1, "verdict": "STRETCH", "reason": "r"}],
-            verdict_overrides={"STRETCH": "custom"},
         )
         result = build_system_prompt(profile)
         assert result.startswith(BASE_SYSTEM_PROMPT)

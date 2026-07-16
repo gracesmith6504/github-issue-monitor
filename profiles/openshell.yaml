@@ -16,10 +16,23 @@ calibration: |
     dependency relationships that a newcomer cannot learn quickly.
   - The project has a vouch gate — first-time external contributors must get
     a maintainer to /vouch them before any PR is accepted.
+  - RFCs, spikes, and design proposals WITH OPEN DESIGN QUESTIONS (multiple
+    options presented, "which approach should we take?") require Scope=1.
+    But documentation that formalizes already-prescribed content — checklists,
+    standards where the items are enumerated in the issue — is regular
+    documentation work, NOT an RFC. Score docs on their actual scope.
+  - Before scoring, EXPLICITLY search the calibration examples for a match:
+    same crate, same subsystem, or same concept (e.g. "symlink" matches
+    "symlink"). If you find a match, START from that example's scores and
+    only deviate if the new issue is clearly easier or harder. A prior
+    community attempt that failed or was rejected is the strongest signal
+    that a task is harder than the issue text suggests.
 
 architecture: |
   Subsystem isolation (least to most interconnected):
-  - Docs/examples: No Rust needed. Always safe for newcomers.
+  - Docs/examples: No Rust needed. Editing EXISTING docs is always safe (Fam=4-5).
+    However, NEW docs that define project standards, processes, or conformance
+    criteria require Fam=2-3 (project-specific knowledge to write accurately).
   - openshell-tui (18 files): Terminal UI dashboard, isolated, few dependencies. Self-contained changes.
   - openshell-cli (17 files): CLI frontend, mostly isolated. Safe for newcomers who know Rust basics.
   - openshell-policy (3 files): Policy parsing, small and focused. Depends only on core.
@@ -28,8 +41,8 @@ architecture: |
   - openshell-bootstrap (9 files): Gateway registration, auth tokens. Moderate complexity.
   - openshell-supervisor-process (19 files): SSH server, process spawning, privilege drop. NOT newcomer-friendly.
   - openshell-supervisor-network (26 files): L7 proxy, OPA policy, inference routing. Hard.
-  - openshell-server (59 files, depends on 12 other crates): The gateway hub. ANY issue touching this is STRETCH at minimum.
-  - openshell-core (30 files): Foundation crate — every other crate depends on it. Changes here cascade everywhere. LONG SHOT or NOT YET.
+  - openshell-server (59 files, depends on 12 other crates): The gateway hub. ANY issue touching this should have familiarity no higher than 2.
+  - openshell-core (30 files): Foundation crate — every other crate depends on it. Changes here cascade everywhere. Familiarity should be 1.
 
 domains: |
   Hard domains (push verdict DOWN even when file paths are given):
@@ -51,32 +64,32 @@ domains: |
 
 examples:
   - number: 832
-    verdict: "JUMP ON IT"
-    reason: "1-line fix in build.rs — change glob pattern from 'v*' to 'v[0-9]*'. Root cause fully diagnosed in issue. Multiple people independently submitted the same fix."
+    scores: "SP=5 Scope=5 Fam=5"
+    reason: "1-line fix in build.rs — change glob pattern. Exact change spelled out, no Rust knowledge needed."
   - number: 1339
-    verdict: "JUMP ON IT"
-    reason: "Replace '--sync' with '--upload .' in one documentation file. No Rust, no codebase knowledge, no tests needed."
+    scores: "SP=5 Scope=5 Fam=5"
+    reason: "Replace '--sync' with '--upload .' in one doc file. No Rust, no codebase knowledge."
   - number: 2173
-    verdict: "GO FOR IT"
-    reason: "Certgen EXDEV fix — exact file and line given (certgen.rs L680), one function to change (std::fs::rename to copy+delete), Rust but contained to a single crate."
-  - number: 1347
-    verdict: "STRETCH"
-    reason: "Provider update validation split — 2 files, 67 lines, required understanding gRPC validation patterns and writing regression tests. No newcomer picked it up."
-  - number: 1425
-    verdict: "LONG SHOT"
-    reason: "Symlink upload fix — looked simple but needed 296 lines across 4 files in CLI internals. Community attempt was rejected; maintainer had to write the fix."
-  - number: 1358
-    verdict: "NOT YET"
-    reason: "macOS gateway crash-loop — cross-platform networking issue across multiple drivers. 15 files changed by core maintainer. Incorrectly labeled 'good first issue'."
+    scores: "SP=5 Scope=4 Fam=3"
+    reason: "Certgen EXDEV fix — exact file and line given, 1 crate, but need to read the function to implement the fix correctly in Rust."
   - number: 2095
-    verdict: "GO FOR IT"
-    reason: "Helm template conditional rendering — add an if-check around client_ca_path in one template file. Well-diagnosed, no Rust, no design decisions."
-  - number: 2112
-    verdict: "GO FOR IT"
-    reason: "Build fix — add ulimit guard to mise task. Root cause fully diagnosed (macOS 256 fd limit vs 333 rlibs). Config change, not code."
+    scores: "SP=4 Scope=4 Fam=5"
+    reason: "Helm template fix — add an if-check. No Rust, no codebase knowledge, well-diagnosed."
+  - number: 1347
+    scores: "SP=3 Scope=3 Fam=3"
+    reason: "Provider validation split — 2 files, 67 lines, but required understanding gRPC validation patterns."
+  - number: 1425
+    scores: "SP=3 Scope=2 Fam=2"
+    reason: "Symlink upload — looked simple but needed 296 lines across 4 files in CLI internals. Community attempt was rejected."
+  - number: 2309
+    scores: "SP=3 Scope=2 Fam=2"
+    reason: "Symlink regression — same subsystem as #1425, root cause identified but fix requires understanding upload planner internals."
   - number: 2304
-    verdict: "LONG SHOT"
-    reason: "Refactor a 10,103-line file into modules. Requires understanding every function to know where it belongs. No newcomer can safely decompose this."
+    scores: "SP=2 Scope=2 Fam=1"
+    reason: "Refactor a 10,103-line file into modules. Must understand every function to know where it belongs. Scope is huge despite being 'one crate'."
+  - number: 1358
+    scores: "SP=2 Scope=1 Fam=1"
+    reason: "macOS gateway crash-loop — cross-platform networking, 15 files, deep architectural knowledge needed."
 
 auto_label: false
 
@@ -84,9 +97,8 @@ label_map:
   "JUMP ON IT": "good first issue"
   "GO FOR IT": "good first issue"
 
-verdict_overrides:
-  "JUMP ON IT": "Fix is practically spelled out — exact file, exact line, mechanical change. 1 file, under 10 lines. No Rust knowledge needed, or trivial Rust (change a string/constant). Examples: docs typo, build.rs glob fix, config value change."
-  "GO FOR IT": "The issue diagnoses the problem clearly enough that you know WHAT to change, not just WHERE to look. Fix is contained to 1-3 files. No design decisions — the approach is obvious from the issue description. Includes: Helm template fixes, build/config fixes with clear root cause, bug fixes with exact file and line numbers, features in isolated crates (openshell-tui, openshell-cli) where the path is obvious. Claude Code can navigate the code and write the fix."
-  "STRETCH": "The issue describes the problem but the FIX requires making implementation choices — deciding between approaches, understanding existing patterns to maintain consistency, or working in a domain (SSH, networking, sandboxing) where Claude Code can explain syntax but cannot make the judgment calls. Touches 1-2 crates, 2-5 files. Still doable with patience but you will need to study the codebase."
-  "LONG SHOT": "Requires deep domain expertise, OR a large refactor where you must understand thousands of lines to restructure safely, OR cross-crate design changes, OR touches security-critical paths (openshell-supervisor-process, openshell-supervisor-network, openshell-core). Real risk of spending days stuck even with AI tools."
-  "NOT YET": "New subsystems, architectural redesign, RFC-level work, or changes that require months of project context to even understand the constraints. Examples: new compute drivers, new API surfaces, build system overhaul."
+verdict_thresholds:
+  "JUMP ON IT": 13
+  "GO FOR IT": 10
+  "STRETCH": 7
+  "LONG SHOT": 5

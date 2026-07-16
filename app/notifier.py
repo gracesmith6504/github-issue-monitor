@@ -3,6 +3,7 @@ import requests
 import logging
 import jwt
 
+from app.core.scoring import format_scores
 from app.core.verdict import VERDICT_TO_LABEL, VERDICT_EMOJI
 
 logger = logging.getLogger(__name__)
@@ -59,10 +60,15 @@ def _post_notification(issue, analysis, notify_repo, token):
         note = " ".join(details) if details else "Previously claimed and abandoned."
         reclaimed_note = f"\n> {note} Check the comments for context or partial work.\n"
 
+    total = analysis.get("total_score", 0)
     skills = ', '.join(analysis.get('skills_needed', ['unknown']))
+    scores_block = format_scores(analysis, prefix="- ")
 
     safe_url = issue['url'].replace('https://github.com/', 'https://redirect.github.com/')
-    body = f"""{prefix}{emoji} **{verdict}** — [{issue['repo']} #{issue['number']}]({safe_url})
+    body = f"""{prefix}{emoji} **{verdict}** ({total}/15) — [{issue['repo']} #{issue['number']}]({safe_url})
+
+**Scores:**
+{scores_block}
 
 **Skills:** {skills}
 {reclaimed_note}
@@ -71,8 +77,6 @@ def _post_notification(issue, analysis, notify_repo, token):
 {analysis.get('summary', 'No summary available.')}
 
 **What to fix:** {analysis.get('fix_description', 'No fix description available.')}
-
-**Why this verdict:** {analysis.get('verdict_reason', 'No reason provided.')}
 
 ---
 *[github-issue-monitor](https://github.com/{notify_repo})*"""

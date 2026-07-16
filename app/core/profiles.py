@@ -18,7 +18,7 @@ class RepoProfile:
     domains: str = ""
     examples: list[dict] = field(default_factory=list)
     label_map: dict[str, str] = field(default_factory=dict)
-    verdict_overrides: dict[str, str] = field(default_factory=dict)
+    verdict_thresholds: dict[str, int] | None = None
     auto_label: bool = True
     repo_language: str = ""
     repo_display_name: str = ""
@@ -49,7 +49,7 @@ def load_profile(name: str, profiles_dir: Path | None = None) -> RepoProfile:
         domains=data.get("domains", ""),
         examples=data.get("examples", []),
         label_map=data.get("label_map", {}),
-        verdict_overrides=data.get("verdict_overrides", {}),
+        verdict_thresholds=data.get("verdict_thresholds"),
         auto_label=data.get("auto_label", True),
         repo_language=data.get("repo_language", ""),
         repo_display_name=data.get("repo_display_name", ""),
