@@ -40,39 +40,6 @@ def build_verdict_reason(analysis: dict) -> str:
     return "; ".join(parts)
 
 
-import re
-
-_SCORE_RE = re.compile(r"SP=(\d)\s+Scope=(\d)\s+Fam=(\d)")
-
-
-def parse_example_scores(scores_str: str) -> tuple[int, int, int] | None:
-    m = _SCORE_RE.search(scores_str)
-    if not m:
-        return None
-    return int(m.group(1)), int(m.group(2)), int(m.group(3))
-
-
-def lookup_example(issue_number: int, profile) -> dict | None:
-    if not profile or not profile.examples:
-        return None
-    for ex in profile.examples:
-        if ex.get("number") == issue_number:
-            scores_str = ex.get("scores", "")
-            parsed = parse_example_scores(scores_str)
-            if parsed:
-                sp, sc, fm = parsed
-                return {
-                    "starting_point": sp,
-                    "scope": sc,
-                    "familiarity": fm,
-                    "starting_point_reason": f"Calibration example (#{issue_number})",
-                    "scope_reason": f"Calibration example (#{issue_number})",
-                    "familiarity_reason": f"Calibration example (#{issue_number})",
-                    "reason": ex.get("reason", ""),
-                }
-    return None
-
-
 def format_scores(analysis: dict, prefix: str = "") -> str:
     lines = []
     for axis in ("starting_point", "scope", "familiarity"):

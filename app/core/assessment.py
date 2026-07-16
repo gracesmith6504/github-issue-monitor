@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from app.core.hints import build_hint
 from app.core.llm import LLMClientProtocol as LLMClient
 from app.core.prompt import SYSTEM_PROMPT, build_user_prompt
-from app.core.scoring import build_verdict_reason, clamp_score, compute_verdict, lookup_example
+from app.core.scoring import build_verdict_reason, clamp_score, compute_verdict
 
 if TYPE_CHECKING:
     from app.core.profiles import RepoProfile
@@ -28,14 +28,8 @@ def assess_issue(
     if not analysis:
         return None
 
-    example = lookup_example(issue["number"], profile)
-    if example:
-        for key in ("starting_point", "scope", "familiarity",
-                     "starting_point_reason", "scope_reason", "familiarity_reason"):
-            analysis[key] = example[key]
-    else:
-        for axis in ("starting_point", "scope", "familiarity"):
-            analysis[axis] = clamp_score(analysis.get(axis))
+    for axis in ("starting_point", "scope", "familiarity"):
+        analysis[axis] = clamp_score(analysis.get(axis))
 
     thresholds = profile.verdict_thresholds if profile else None
     verdict, total = compute_verdict(

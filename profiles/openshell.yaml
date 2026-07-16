@@ -6,27 +6,22 @@ repo_display_name: "NVIDIA/OpenShell"
 
 calibration: |
   CRITICAL context for this repository:
-  - Issues are written by AI agents and are ALL detailed with file paths,
-    line numbers, reproduction steps, and root cause analysis. Detail does
-    NOT mean the issue is easy — it means the filing agent was thorough.
-    Do NOT let detailed issue descriptions push the verdict UP.
+  - Issues are filed by AI agents that ALWAYS include file paths, line numbers,
+    and root cause analysis. File paths alone do NOT mean the fix is clear —
+    score Starting Point based on whether the exact CODE CHANGE is described
+    (SP=5) or just the location (SP=3).
   - This is a 21-crate Rust workspace (~8.8M lines). The number of CRATES
     touched matters more than the number of files. A change in one isolated
     crate may be trivial; a change spanning crates requires understanding
     dependency relationships that a newcomer cannot learn quickly.
   - The project has a vouch gate — first-time external contributors must get
     a maintainer to /vouch them before any PR is accepted.
-  - RFCs, spikes, and design proposals WITH OPEN DESIGN QUESTIONS (multiple
-    options presented, "which approach should we take?") require Scope=1.
-    But documentation that formalizes already-prescribed content — checklists,
-    standards where the items are enumerated in the issue — is regular
-    documentation work, NOT an RFC. Score docs on their actual scope.
-  - Before scoring, EXPLICITLY search the calibration examples for a match:
-    same crate, same subsystem, or same concept (e.g. "symlink" matches
-    "symlink"). If you find a match, START from that example's scores and
-    only deviate if the new issue is clearly easier or harder. A prior
-    community attempt that failed or was rejected is the strongest signal
-    that a task is harder than the issue text suggests.
+  - Before scoring, search the calibration examples for a match: same crate,
+    same subsystem, or same concept (e.g. "symlink" matches "symlink"). If
+    you find a match, START from that example's scores and only deviate if the
+    new issue is clearly easier or harder. A prior community attempt that
+    failed or was rejected is the strongest signal that a task is harder than
+    the issue text suggests.
 
 architecture: |
   Subsystem isolation (least to most interconnected):
@@ -65,31 +60,37 @@ domains: |
 examples:
   - number: 832
     scores: "SP=5 Scope=5 Fam=5"
-    reason: "1-line fix in build.rs — change glob pattern. Exact change spelled out, no Rust knowledge needed."
+    reason: "The exact code change is described: change glob from 'v*' to 'v[0-9]*' in build.rs. You know what to type before opening the file. 1 line, no Rust knowledge."
   - number: 1339
     scores: "SP=5 Scope=5 Fam=5"
-    reason: "Replace '--sync' with '--upload .' in one doc file. No Rust, no codebase knowledge."
+    reason: "The exact code change is described: replace '--sync' with '--upload .' in one doc file. Mechanical substitution, no codebase knowledge."
   - number: 2173
     scores: "SP=5 Scope=4 Fam=3"
-    reason: "Certgen EXDEV fix — exact file and line given, 1 crate, but need to read the function to implement the fix correctly in Rust."
+    reason: "The fix approach is explicitly described: replace std::fs::rename with copy+delete at certgen.rs L680. You know the approach before opening the file (SP=5). Single crate, but implementing the fix correctly requires reading the surrounding Rust code (Fam=3)."
   - number: 2095
     scores: "SP=4 Scope=4 Fam=5"
-    reason: "Helm template fix — add an if-check. No Rust, no codebase knowledge, well-diagnosed."
+    reason: "File and approach are both clear: add an if-check around client_ca_path in a Helm template (SP=4). No Rust, no codebase knowledge needed — it's a config template fix (Fam=5)."
   - number: 1347
     scores: "SP=3 Scope=3 Fam=3"
-    reason: "Provider validation split — 2 files, 67 lines, but required understanding gRPC validation patterns."
+    reason: "Files are identified but the fix requires investigation: you need to understand gRPC validation patterns to implement the split correctly (SP=3). 2 files, 67 lines, pattern-matching required."
   - number: 1425
     scores: "SP=3 Scope=2 Fam=2"
-    reason: "Symlink upload — looked simple but needed 296 lines across 4 files in CLI internals. Community attempt was rejected."
+    reason: "Root cause is diagnosed but the fix is not obvious: looked like a 2-file fix but actually needed 296 lines across 4 files in CLI internals (SP=3). Community attempt was rejected — a strong signal the task is harder than the issue suggests."
   - number: 2309
     scores: "SP=3 Scope=2 Fam=2"
-    reason: "Symlink regression — same subsystem as #1425, root cause identified but fix requires understanding upload planner internals."
+    reason: "Same subsystem as #1425 (symlinks). Root cause identified but fix requires understanding upload planner internals (SP=3). Prior community rejection on #1425 anchors this as harder than the description suggests."
   - number: 2304
     scores: "SP=2 Scope=2 Fam=1"
-    reason: "Refactor a 10,103-line file into modules. Must understand every function to know where it belongs. Scope is huge despite being 'one crate'."
+    reason: "Problem is clear but no direction on how to decompose: splitting a 10,103-line file requires understanding every function to know where it belongs (SP=2). Scope is huge despite being 'one crate' (Scope=2). Deep architectural knowledge needed (Fam=1)."
   - number: 1358
     scores: "SP=2 Scope=1 Fam=1"
-    reason: "macOS gateway crash-loop — cross-platform networking, 15 files, deep architectural knowledge needed."
+    reason: "Only symptoms described, cross-platform networking issue: 15 files changed by a core maintainer. Requires deep architectural knowledge of gateway internals (Fam=1)."
+  - number: 2267
+    scores: "SP=2 Scope=3 Fam=3"
+    reason: "This asks someone to WRITE a new standards document from scratch — not edit an existing doc. The issue describes what the doc should cover but not the actual content. You'd need to research the project's current SDK ecosystem and make judgment calls about standards (SP=2). Moderate scope — one document, but substantial content (Scope=3). Requires understanding the project's SDK landscape well enough to define standards (Fam=3)."
+  - number: 2292
+    scores: "SP=3 Scope=1 Fam=2"
+    reason: "This is an RFC/design proposal to create an SDK conformance framework with tiers, scoring, and automation. Despite mentioning specific files, the real work is designing the framework itself — open questions about approach make this Scope=1. You need project-specific knowledge of the SDK ecosystem and how teams use it (Fam=2)."
 
 auto_label: false
 

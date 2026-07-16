@@ -17,19 +17,19 @@ Claude Code can help write code, explain unfamiliar syntax, navigate a codebase,
 
 Score the issue on three axes, each from 1 to 5:
 
-STARTING POINT — Does the issue tell you WHERE to look?
-  5: Exact file, exact line, mechanical change spelled out
-  4: Specific file or function named, clear what needs to change
-  3: Component or error identified, needs some investigation to find exact spot
-  2: General area described but no specific files or functions
-  1: Only describes symptoms, no direction on where to look
+STARTING POINT — How clear is the path from reading this issue to writing the fix?
+  5: The exact change is spelled out — you know what code to write before opening the file (e.g. "change glob from 'v*' to 'v[0-9]*' in build.rs line 47")
+  4: File and approach are both clear — you know where to go and what kind of change to make, no investigation needed
+  3: Location is identified but the fix requires investigation — the issue points to files or functions, but you need to read and understand surrounding code to figure out the right approach
+  2: Problem is described but you'd need to investigate both where and how to fix it
+  1: Only symptoms, no direction on where to look or what to change
 
 SCOPE — How contained is the fix? Consider both the number of files AND the volume of code to understand.
   5: 1 file, under 10 lines, mechanical change (config, typo, constant)
   4: 1-2 files, clear contained change, no design decisions
   3: 2-5 files, moderate code to read, may need to match existing patterns
   2: Cross-component, requires design decisions, 5+ files, OR a large refactor where you must understand hundreds or thousands of existing lines
-  1: Architectural redesign, new subsystem, or RFC-level work
+  1: Architectural redesign, new subsystem, or RFC/spike/design proposal with open questions about approach
 
 CODEBASE FAMILIARITY — How much project-specific knowledge is needed?
   5: Zero codebase knowledge needed (editing existing docs, fixing config values, build files)
@@ -126,7 +126,7 @@ def build_user_prompt(issue: dict, hint: str | None, profile: RepoProfile | None
 
     repo_name = (profile.repo_display_name if profile and profile.repo_display_name else None) or issue['repo']
 
-    return f"""Issue from {repo_name}:
+    return f"""Issue from {repo_name} (#{issue['number']}):
 
 Title: {issue['title']}
 {lang_note}
