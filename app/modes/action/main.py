@@ -3,6 +3,8 @@ import logging
 import os
 import sys
 
+import requests
+
 from app.core.assessment import assess_issue
 from app.core.llm import LLMClient
 from app.core.profiles import load_profile
@@ -41,6 +43,31 @@ def build_issue_dict(event):
     }
 
 
+def fetch_issue_from_api(repo, number, token):
+    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"}
+    url = f"https://api.github.com/repos/{repo}/issues/{number}"
+    resp = requests.get(url, headers=headers, timeout=10)
+    if resp.status_code != 200:
+        logger.error(f"Failed to fetch issue #{number}: {resp.status_code} {resp.text[:200]}")
+        return None
+    issue = resp.json()
+
+    repo_url = f"https://api.github.com/repos/{repo}"
+    repo_resp = requests.get(repo_url, headers=headers, timeout=10)
+    repo_language = repo_resp.json().get("language") if repo_resp.status_code == 200 else None
+
+    return {
+        "repo": repo,
+        "number": issue["number"],
+        "title": issue["title"],
+        "body": issue.get("body") or "",
+        "url": issue["html_url"],
+        "labels": [l["name"] for l in issue.get("labels", [])],
+        "comments": [],
+        "repo_language": repo_language,
+    }
+
+
 def _set_output(key, value):
     output_file = os.environ.get("GITHUB_OUTPUT")
     if output_file:
@@ -72,10 +99,29 @@ def main():
         except (FileNotFoundError, ValueError) as e:
             logger.warning(f"Failed to load profile '{profile_name}': {e}")
 
+    auto_label_override = (os.environ.get("INPUT_AUTO_LABEL") or os.environ.get("INPUT_AUTO-LABEL") or "").lower()
+    if auto_label_override == "true" and profile:
+        profile.auto_label = True
+
     system_prompt = build_system_prompt(profile)
 
+    issue_number = os.environ.get("INPUT_ISSUE_NUMBER") or os.environ.get("INPUT_ISSUE-NUMBER") or ""
     event = load_event()
-    issue_dict = build_issue_dict(event)
+
+    if "issue" in event:
+        issue_dict = build_issue_dict(event)
+    elif issue_number.strip():
+        repo = os.environ.get("GITHUB_REPOSITORY", "")
+        if not repo:
+            logger.error("GITHUB_REPOSITORY not set")
+            sys.exit(1)
+        issue_dict = fetch_issue_from_api(repo, int(issue_number.strip()), github_token)
+        if not issue_dict:
+            logger.error(f"Could not fetch issue #{issue_number}")
+            return
+    else:
+        logger.error("No issue in event and no issue-number input provided")
+        return
 
     logger.info(f"Assessing: {issue_dict['repo']} #{issue_dict['number']} — {issue_dict['title']}")
 

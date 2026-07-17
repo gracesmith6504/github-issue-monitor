@@ -24,6 +24,14 @@ inputs:
     description: 'Name of the repo profile for calibrated assessment (e.g. "openshell"). If not set, uses generic assessment.'
     required: false
     default: ''
+  issue-number:
+    description: 'Issue number to assess (for workflow_dispatch). If not set, reads from the issue event.'
+    required: false
+    default: ''
+  auto-label:
+    description: 'Override profile auto_label setting. Set to "true" to apply labels directly.'
+    required: false
+    default: ''
 
 outputs:
   verdict:
@@ -57,5 +65,8 @@ runs:
         INPUT_LLM_MODEL: ${{ inputs.llm-model }}
         INPUT_MIN_VERDICT: ${{ inputs.min-verdict }}
         INPUT_REPO_PROFILE: ${{ inputs.repo-profile }}
+        INPUT_ISSUE_NUMBER: ${{ inputs.issue-number }}
+        INPUT_AUTO_LABEL: ${{ inputs.auto-label }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
         PYTHONPATH: ${{ github.action_path }}
       run: python -m app.modes.action.main
