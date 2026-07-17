@@ -1,6 +1,3 @@
-from typing import TypedDict
-
-
 VERDICT_RANKS = ["JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT", "NOT YET"]
 
 VERDICT_TO_LABEL = {
@@ -18,15 +15,6 @@ VERDICT_EMOJI = {
     "LONG SHOT": "\U0001f7e0",
     "NOT YET": "\U0001f534",
 }
-
-
-class VerdictResult(TypedDict):
-    summary: str
-    fix_description: str
-    skills_needed: list[str]
-    verdict: str
-    verdict_reason: str
-    claimed: bool
 
 
 def meets_threshold(verdict: str, min_verdict: str) -> bool:

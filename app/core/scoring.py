@@ -26,8 +26,14 @@ def compute_verdict(starting_point: int, scope: int, familiarity: int,
     total = starting_point + scope + familiarity
     for verdict in ("JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT"):
         if total >= t[verdict]:
-            return verdict, total
-    return "NOT YET", total
+            break
+    else:
+        verdict = "NOT YET"
+
+    if min(starting_point, scope, familiarity) == 1 and verdict in ("JUMP ON IT", "GO FOR IT", "STRETCH"):
+        verdict = "LONG SHOT"
+
+    return verdict, total
 
 
 def build_verdict_reason(analysis: dict) -> str:

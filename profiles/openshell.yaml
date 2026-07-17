@@ -106,6 +106,30 @@ examples:
   - number: 1696
     scores: "SP=2 Scope=1 Fam=1"
     reason: "GPU sandboxes fail because seccomp blocks memfd_secret syscall. Fixing this requires understanding the intersection of GPU initialization, kernel seccomp policies, and the sandbox security model — three hard domains at once. No clear fix path described, multiple possible approaches (SP=2, Scope=1, Fam=1)."
+  - number: 2320
+    scores: "SP=3 Scope=3 Fam=3"
+    reason: "TUI resize bug. Location identified (openshell-tui) but fix requires investigating ratatui event handling and layout reflow (SP=3). 2-5 files in an isolated crate (Scope=3). Claude Code can learn the TUI patterns by reading the crate (Fam=3)."
+  - number: 2332
+    scores: "SP=4 Scope=4 Fam=3"
+    reason: "Documentation task but NOT Fam=5 — this requires understanding MicroVM driver use cases and limitations to write accurately (Fam=3). Clear what to document and where (SP=4). Contained to docs (Scope=4)."
+  - number: 2252
+    scores: "SP=2 Scope=3 Fam=2"
+    reason: "New Jupyter example requires design decisions about sandbox lifecycle and SDK integration (SP=2). Moderate scope — one example but substantial implementation (Scope=3). Needs understanding of sandbox lifecycle beyond what code reading reveals (Fam=2)."
+  - number: 2290
+    scores: "SP=3 Scope=3 Fam=2"
+    reason: "SSH exec hardcodes /bin/bash. Bug is clear and location identifiable (SP=3), but fix touches supervisor internals — runtime behavior of SSH sessions isn't obvious from reading code (Fam=2)."
+  - number: 2339
+    scores: "SP=2 Scope=2 Fam=2"
+    reason: "Config merged but missing from release. Debugging CI/release pipeline requires understanding build and packaging processes that aren't visible in the source code (Fam=2). No clear fix path (SP=2)."
+  - number: 2343
+    scores: "SP=2 Scope=2 Fam=1"
+    reason: "GPU segfault in sandbox. Three hard domains at once: GPU initialization, sandbox security model, kernel/driver compatibility (Fam=1). No clear direction on the fix (SP=2)."
+  - number: 2342
+    scores: "SP=5 Scope=4 Fam=5"
+    reason: "Helm template passthroughs with exact syntax provided — the issue spells out the {{- with }} blocks to add and the values.yaml shape. Same pattern as existing nodeSelector/affinity/tolerations already in the template (SP=5). 1-2 files, mechanical additions (Scope=4). No Rust, no codebase knowledge, standard Helm patterns (Fam=5)."
+  - number: 2123
+    scores: "SP=4 Scope=4 Fam=4"
+    reason: "Arch Linux install path. Detailed design with exact function names and flow mirroring install_linux_rpm(), but the actual code isn't spelled out (SP=4, not 5). Single file change (Scope=4). Shell scripting, no Rust — Claude Code can read existing install functions and replicate the pattern, but you need to understand the install flow (Fam=4, not 5)."
 
 auto_label: false
 

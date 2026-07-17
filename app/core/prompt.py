@@ -38,6 +38,7 @@ SCOPE — How contained is the fix?
   3: 2-5 files, moderate code to read, may need to match existing patterns
   2: Cross-component, requires design decisions, 5+ files, OR a large refactor where you must understand hundreds or thousands of existing lines
   1: Architectural redesign, new subsystem, or RFC/spike/design proposal with open questions about approach
+  Note: Removing code (deleting a feature, removing a dependency) scores higher than adding code at the same file count. Deletion is mechanical — grep for references and remove them. No design decisions needed.
 
 CODEBASE FAMILIARITY — How much knowledge is needed BEYOND what Claude Code can figure out?
   5: Zero codebase knowledge needed (editing existing docs, fixing config values, build files)
@@ -45,6 +46,7 @@ CODEBASE FAMILIARITY — How much knowledge is needed BEYOND what Claude Code ca
   3: Need to understand existing patterns, but Claude Code can learn them by reading the codebase
   2: Need to understand how multiple components interact in ways that aren't obvious from reading code (runtime behavior, deployment topology, platform-specific behavior)
   1: Need deep architectural knowledge, design judgment, or months of project context that isn't written down anywhere
+  Note: Removing code requires less familiarity than adding code. You don't need to understand patterns to delete them — Claude Code can find all references and remove them.
 
 When in doubt on any score, round DOWN. A newcomer surprised by an easier-than-expected issue is fine; a newcomer stuck on a harder-than-expected issue wastes days.
 
@@ -70,7 +72,10 @@ Return a JSON object with these exact fields:
 - "scope_reason": One sentence explaining the score
 - "familiarity": Integer 1-5 score for the codebase familiarity axis
 - "familiarity_reason": One sentence explaining what knowledge is needed that Claude Code can't provide
-- "recommendation": One sentence saying what a newcomer should do — either "Go for it: [why]" or "Skip: [why]"
+- "recommendation": One sentence for the newcomer:
+  - If the issue is very accessible (clear fix, minimal domain knowledge), start with "Go for it:" and say why.
+  - If the issue is doable but needs some domain knowledge, start with "Worth trying if" and name the specific skill or context needed. Then say what Claude Code can handle.
+  - If the issue needs deep project context or architectural judgment, start with "Not recommended:" and say what makes it too hard.
 - "claimed": true if someone has claimed this issue in the comments, false otherwise
 
 Return ONLY the JSON object, no markdown fences or extra text."""

@@ -34,13 +34,21 @@ EXPECTED = {
     1358: (2, 1, 1, "NOT YET"),
     2267: (2, 3, 3, "STRETCH"),
     2309: (3, 2, 2, "STRETCH"),
-    2292: (3, 1, 2, "STRETCH"),
+    2292: (3, 1, 2, "LONG SHOT"),
     2278: (3, 2, 2, "STRETCH"),
     2275: (5, 5, 5, "JUMP ON IT"),
     2229: (3, 3, 2, "STRETCH"),
     1998: (3, 2, 1, "LONG SHOT"),
     2083: (3, 2, 1, "LONG SHOT"),
     1696: (2, 1, 1, "NOT YET"),
+    2320: (3, 3, 3, "STRETCH"),
+    2332: (4, 4, 3, "GO FOR IT"),
+    2252: (2, 3, 2, "STRETCH"),
+    2290: (3, 3, 2, "STRETCH"),
+    2339: (2, 2, 2, "LONG SHOT"),
+    2343: (2, 2, 1, "LONG SHOT"),
+    2342: (5, 4, 5, "JUMP ON IT"),
+    2123: (4, 4, 4, "GO FOR IT"),
 }
 
 

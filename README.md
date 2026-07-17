@@ -1,27 +1,30 @@
 # GitHub Issue Monitor
 
-An LLM-powered tool that assesses GitHub issues for newcomer-friendliness. Works in two modes:
+An LLM-powered tool that assesses GitHub issues for newcomers who use Claude Code. The key question it answers: "could a newcomer with Claude Code realistically submit a PR for this?" Works in two modes:
 
 - **Action mode** — A maintainer installs this once on a repo. When someone opens an issue, it instantly assesses it, adds the `good first issue` label, and posts a comment with the breakdown. Benefits the whole project — every contributor can see which issues are newcomer-friendly.
 - **Polling mode** — Individual contributors fork this repo. It watches repos for new issues and emails you the newcomer-friendly ones before anyone else claims them.
 
-Both modes use the same assessment engine: an LLM rates each issue on how clear the starting point is, whether the scope is contained, and whether the fix requires codebase familiarity a newcomer wouldn't have.
+Both modes use the same assessment engine: an LLM rates each issue on three axes — how clear the path to the fix is, how contained the scope is, and how much knowledge is needed beyond what Claude Code can figure out.
 
 **They work well together.** Action mode labels issues so anyone browsing the repo can filter by `good first issue`. Polling mode emails you the moment one appears, so you never miss a good opportunity to contribute.
 
 Each assessment includes:
 - A plain English summary of what the issue is about
 - What the fix likely involves (specific files/functions if mentioned)
-- What skills you'd need
+- Skills needed that Claude Code can't provide
+- A recommendation — "Go for it", "Worth trying if [condition]", or "Not recommended"
 - A verdict — one of five levels:
 
-| | Verdict | Meaning |
-|---|---|---|
-| 🟢 | **JUMP ON IT** | Clear starting point, straightforward fix. Claim it before someone else does. |
-| 🔵 | **GO FOR IT** | Clear starting point, harder fix — Claude Code can guide you through it. |
-| 🟡 | **STRETCH** | Vague starting point but enough context to investigate with Claude. Worth attempting. |
-| 🟠 | **LONG SHOT** | Very little direction. Real risk of getting stuck. Only if you're feeling adventurous. |
-| 🔴 | **NOT YET** | No clear entry point. Needs deep architectural knowledge. Skip this one. |
+| | Verdict | Score | Meaning |
+|---|---|---|---|
+| 🟢 | **JUMP ON IT** | 13-15 | The fix is spelled out. Anyone with Claude Code can do this. |
+| 🔵 | **GO FOR IT** | 10-12 | Clear path, contained scope. Claude Code can handle the investigation. |
+| 🟡 | **STRETCH** | 7-9 | Doable but needs some domain knowledge. Check the recommendation for what's needed. |
+| 🟠 | **LONG SHOT** | 5-6 | Needs domain expertise Claude Code can't bridge. |
+| 🔴 | **NOT YET** | 3-4 | Deep architectural knowledge required. Not for newcomers. |
+
+Any axis scored at 1 (no starting point, architectural redesign, or deep project context needed) automatically caps the verdict at LONG SHOT regardless of the total score.
 
 By default, only issues rated STRETCH or above get labeled/notified. You can adjust this with `MIN_VERDICT`.
 
@@ -210,11 +213,12 @@ oc run issue-monitor \
 
 ## How It Works
 
-1. **Assessment engine** — sends the issue title, body, labels, and comments to an LLM (any OpenAI-compatible endpoint — GitHub Models, OpenRouter, etc.) which rates it on three axes: clarity of starting point, scope containment, and codebase familiarity required
-2. **Label signals** — `good first issue` and similar labels are passed as hints to the LLM for stronger signal
-3. **Claimed detection** — deterministic checks for assignment, linked PRs, fork activity, and comment patterns ("I'll work on this"), plus an LLM second pass for unusual wordings
-4. **Action mode** adds the `good first issue` label and posts a detailed assessment comment directly on the issue
-5. **Polling mode** creates a notification issue in your fork (GitHub emails you), with skip labels and reclaimed issue detection
+1. **Assessment engine** — sends the issue title, body, labels, and comments to an LLM (any OpenAI-compatible endpoint — GitHub Models, OpenRouter, etc.) which rates it on three axes: Starting Point (how clear is the path to the fix?), Scope (how contained?), and Familiarity (how much knowledge beyond what Claude Code can figure out?). Scores are 1-5 each, summed for the verdict.
+2. **Repo profiles** — optional YAML profiles (`profiles/`) provide repo-specific calibration: architecture guides, domain complexity notes, and scored examples the LLM uses as anchors. Without a profile, the base prompt still produces reasonable results.
+3. **Label signals** — `good first issue` and similar labels are passed as hints to the LLM for stronger signal
+4. **Claimed detection** — deterministic checks for assignment, linked PRs, fork activity, and comment patterns ("I'll work on this"), plus an LLM second pass for unusual wordings
+5. **Action mode** adds the `good first issue` label and posts a detailed assessment comment directly on the issue
+6. **Polling mode** creates a notification issue in your fork (GitHub emails you), with skip labels and reclaimed issue detection
 
 ## Costs
 
