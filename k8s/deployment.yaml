@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: issue-monitor
-          image: quay.io/gracesmith6504/github-issue-monitor:latest
+          image: quay.io/your-username/github-issue-monitor:latest
           envFrom:
             - configMapRef:
                 name: issue-monitor-config

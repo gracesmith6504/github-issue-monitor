@@ -4,8 +4,8 @@ metadata:
   name: issue-monitor-config
   namespace: issue-monitor
 data:
-  WATCH_REPOS: "NVIDIA/OpenShell"
-  NOTIFY_REPO: "gracesmith6504/github-issue-monitor"
+  WATCH_REPOS: "org/repo"
+  NOTIFY_REPO: "your-username/github-issue-monitor"
   POLL_INTERVAL: "30"
   LLM_PROVIDER: "github"
   LLM_MODEL: "gpt-4o"

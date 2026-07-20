@@ -165,21 +165,22 @@ def main():
 
     repo = issue_dict["repo"]
     number = issue_dict["number"]
+    source_repo = os.environ.get("GITHUB_ACTION_REPOSITORY", "gracesmith6504/github-issue-monitor")
 
     if profile and profile.label_map:
         label_name = profile.label_map.get(verdict)
         if label_name and profile.auto_label:
             if add_label(repo, number, github_token, label_name=label_name):
                 _set_output("label", label_name)
-            post_comment(repo, number, analysis, github_token)
+            post_comment(repo, number, analysis, github_token, source_repo=source_repo)
         elif label_name:
-            post_comment(repo, number, analysis, github_token, suggested_label=label_name)
+            post_comment(repo, number, analysis, github_token, suggested_label=label_name, source_repo=source_repo)
         else:
-            post_comment(repo, number, analysis, github_token)
+            post_comment(repo, number, analysis, github_token, source_repo=source_repo)
     else:
         if add_label(repo, number, github_token):
             _set_output("label", GOOD_FIRST_ISSUE_LABEL)
-        post_comment(repo, number, analysis, github_token)
+        post_comment(repo, number, analysis, github_token, source_repo=source_repo)
     logger.info(f"Done — {repo} #{number}: {verdict}")
 
 

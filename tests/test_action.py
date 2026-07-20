@@ -135,7 +135,7 @@ class TestActionMain:
              patch("app.modes.action.main.post_comment") as mock_comment:
             main()
             mock_label.assert_called_once_with("org/repo", 42, "fake-gh-token")
-            mock_comment.assert_called_once_with("org/repo", 42, analysis, "fake-gh-token")
+            mock_comment.assert_called_once_with("org/repo", 42, analysis, "fake-gh-token", source_repo="gracesmith6504/github-issue-monitor")
 
     def test_skips_below_threshold(self, tmp_path):
         event_path = _write_event(tmp_path)

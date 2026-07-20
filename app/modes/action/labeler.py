@@ -46,7 +46,7 @@ def add_label(repo, issue_number, token, label_name=None):
     return False
 
 
-def post_comment(repo, issue_number, analysis, token, suggested_label=None):
+def post_comment(repo, issue_number, analysis, token, suggested_label=None, source_repo="gracesmith6504/github-issue-monitor"):
     verdict = analysis.get("verdict", "")
     total = analysis.get("total_score", 0)
     fix_description = analysis.get("fix_description", "")
@@ -71,7 +71,7 @@ def post_comment(repo, issue_number, analysis, token, suggested_label=None):
         f"> **Skills:** {skills_str}\n"
         f"{label_line}"
         f">\n"
-        f"> *[github-issue-monitor](https://github.com/gracesmith6504/github-issue-monitor)*"
+        f"> *[github-issue-monitor](https://github.com/{source_repo})*"
     )
 
     url = f"https://api.github.com/repos/{repo}/issues/{issue_number}/comments"
