@@ -1,8 +1,8 @@
 # GitHub Issue Monitor
 
-I built this because I wanted to contribute to open source but couldn't tell which issues were at my level, and by the time I found a good one, someone had already claimed it.
-
 An LLM-powered tool that finds GitHub issues suitable for newcomers. It rates each issue on how clear the fix is, how contained the scope is, and how much domain knowledge is needed — then tells you whether to go for it.
+
+I built this because I wanted to contribute to open source but couldn't tell which issues were at my level, and by the time I found a good one, someone had already claimed it.
 
 Each assessment includes a plain English summary, what the fix likely involves, skills needed, and a verdict:
 
