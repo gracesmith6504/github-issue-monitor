@@ -9,6 +9,7 @@ def _make_config(**overrides):
         "notify_repo": "user/alerts",
         "notify_token": "fake-token",
         "monitor_token": "fake-token",
+        "llm_token": "fake-token",
         "llm_model": "gpt-4o",
         "min_verdict": "STRETCH",
         "max_issues_per_repo": 5,
@@ -30,7 +31,7 @@ class TestVerdictThreshold:
 
         with patch("app.modes.polling.main.assess_issue", return_value=analysis), \
              patch("app.modes.polling.main.notifier") as mock_notifier:
-            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
+            run_once(config, poller, llm_client)
             mock_notifier.notify_simple.assert_not_called()
 
     def test_includes_at_threshold(self):
@@ -44,7 +45,7 @@ class TestVerdictThreshold:
 
         with patch("app.modes.polling.main.assess_issue", return_value=analysis), \
              patch("app.modes.polling.main.notifier") as mock_notifier:
-            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
+            run_once(config, poller, llm_client)
             mock_notifier.notify_simple.assert_called_once()
 
     def test_includes_above_threshold(self):
@@ -58,7 +59,7 @@ class TestVerdictThreshold:
 
         with patch("app.modes.polling.main.assess_issue", return_value=analysis), \
              patch("app.modes.polling.main.notifier") as mock_notifier:
-            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
+            run_once(config, poller, llm_client)
             mock_notifier.notify_simple.assert_called_once()
 
     def test_skips_claimed_issues(self):
@@ -72,7 +73,7 @@ class TestVerdictThreshold:
 
         with patch("app.modes.polling.main.assess_issue", return_value=analysis), \
              patch("app.modes.polling.main.notifier") as mock_notifier:
-            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
+            run_once(config, poller, llm_client)
             mock_notifier.notify_simple.assert_not_called()
 
     def test_skips_failed_analysis(self):
@@ -85,7 +86,7 @@ class TestVerdictThreshold:
 
         with patch("app.modes.polling.main.assess_issue", return_value=None), \
              patch("app.modes.polling.main.notifier") as mock_notifier:
-            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
+            run_once(config, poller, llm_client)
             mock_notifier.notify_simple.assert_not_called()
 
     def test_passes_limit_to_poller(self):
@@ -94,7 +95,7 @@ class TestVerdictThreshold:
         poller.poll.return_value = []
         llm_client = MagicMock()
 
-        run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
+        run_once(config, poller, llm_client)
         poller.poll.assert_called_once_with(
             "org/repo", "2024-01-01T00:00:00Z", "user/alerts", limit=15
         )
@@ -113,5 +114,5 @@ class TestVerdictThreshold:
         with patch("app.modes.polling.main.assess_issue", return_value=analysis), \
              patch("app.modes.polling.main.notifier"), \
              patch("app.modes.polling.main.time") as mock_time:
-            run_once(config, poller, llm_client, "2024-01-01T00:00:00Z")
+            run_once(config, poller, llm_client)
             mock_time.sleep.assert_called_once_with(2)

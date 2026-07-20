@@ -20,7 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def run_once(config, poller, llm_client, run_start):
+def run_once(config, poller, llm_client):
     for repo in config["watch_repos"]:
         profile = find_profile_for_repo(repo)
         if profile:
@@ -69,20 +69,19 @@ def main():
     logger.info(f"Checking issues since: {config['last_checked']}")
 
     poller = Poller(config["monitor_token"])
-    client_kwargs = {"api_key": config["monitor_token"]}
+    client_kwargs = {"api_key": config["llm_token"]}
     if config.get("llm_endpoint"):
         client_kwargs["base_url"] = config["llm_endpoint"]
     llm_client = LLMClient(**client_kwargs)
 
     if os.environ.get("RUN_ONCE") == "true":
         logger.info("Running single pass (GitHub Actions mode)")
-        run_start = datetime.now(timezone.utc).isoformat()
-        run_once(config, poller, llm_client, run_start)
+        run_once(config, poller, llm_client)
     else:
         logger.info(f"Poll interval: {config['poll_interval']}s")
         while True:
             run_start = datetime.now(timezone.utc).isoformat()
-            run_once(config, poller, llm_client, run_start)
+            run_once(config, poller, llm_client)
             config["last_checked"] = run_start
             time.sleep(config["poll_interval"])
 

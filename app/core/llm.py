@@ -32,8 +32,14 @@ class LLMClient:
                     response_format={"type": "json_object"},
                 )
 
-                content = response.choices[0].message.content.strip()
-                return json.loads(content)
+                if not response.choices:
+                    logger.error("LLM returned empty choices")
+                    return None
+                content = response.choices[0].message.content
+                if content is None:
+                    logger.error("LLM returned null content")
+                    return None
+                return json.loads(content.strip())
 
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse LLM response: {e}")

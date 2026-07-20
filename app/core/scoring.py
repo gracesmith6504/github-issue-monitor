@@ -23,6 +23,9 @@ def clamp_score(value) -> int:
 def compute_verdict(starting_point: int, scope: int, familiarity: int,
                     thresholds: dict | None = None) -> tuple[str, int]:
     t = thresholds or DEFAULT_THRESHOLDS
+    required = {"JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT"}
+    if required - t.keys():
+        t = DEFAULT_THRESHOLDS
     total = starting_point + scope + familiarity
     for verdict in ("JUMP ON IT", "GO FOR IT", "STRETCH", "LONG SHOT"):
         if total >= t[verdict]:

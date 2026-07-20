@@ -18,6 +18,7 @@ def load_config() -> dict:
     if not monitor_token:
         raise ConfigError("MONITOR_TOKEN environment variable is required")
 
+    llm_token = os.environ.get("LLM_TOKEN") or monitor_token
     notify_token = os.environ.get("NOTIFY_TOKEN") or os.environ.get("GITHUB_TOKEN") or monitor_token
 
     watch_repos_raw = os.environ.get("WATCH_REPOS")
@@ -47,6 +48,7 @@ def load_config() -> dict:
 
     config = {
         "monitor_token": monitor_token,
+        "llm_token": llm_token,
         "notify_token": notify_token,
         "watch_repos": watch_repos,
         "notify_repo": notify_repo,

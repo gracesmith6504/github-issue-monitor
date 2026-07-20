@@ -82,7 +82,7 @@ def _post_notification(issue, analysis, notify_repo, token):
 *[github-issue-monitor](https://github.com/{notify_repo})*"""
 
     url = f"https://api.github.com/repos/{notify_repo}/issues"
-    payload = {"title": title, "body": body, "labels": [label]}
+    payload = {"title": title, "body": body, "labels": [label, "notification"]}
 
     try:
         resp = requests.post(url, headers=headers, json=payload, timeout=10)
