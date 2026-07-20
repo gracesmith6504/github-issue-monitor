@@ -1,6 +1,6 @@
 # GitHub Issue Monitor
 
-An LLM-powered tool that finds GitHub issues you can realistically submit a PR for. It rates each issue on how clear the fix is, how contained the scope is, and how much domain knowledge is needed — then tells you whether to go for it.
+An LLM-powered tool that finds GitHub issues suitable for newcomers. It rates each issue on how clear the fix is, how contained the scope is, and how much domain knowledge is needed — then tells you whether to go for it.
 
 Each assessment includes a plain English summary, what the fix likely involves, skills needed, and a verdict:
 
@@ -18,7 +18,9 @@ By default, only STRETCH or above get notified. You can change this with `MIN_VE
 
 ## Polling Mode — Get emailed when good issues appear
 
-Fork this repo and it watches repos for new issues, analyzes them, and emails you the ones worth working on — every hour, even when your laptop is off.
+Fork this repo and it watches repos for new and reclaimed issues, analyzes them, and emails you the ones worth working on — even when your laptop is off.
+
+It also detects **reclaimed issues** — previously claimed but then abandoned (unassigned, PR closed without merge, etc.). These show up with `[RECLAIMED]` in the subject line.
 
 ![Email notification example](docs/email-example.png)
 
@@ -30,11 +32,13 @@ Click the **Fork** button at the top of this page.
 
 #### 2. Set which repos to watch
 
-In your fork: **Settings** → **Secrets and variables** → **Actions** → **Variables** tab → **New repository variable**
+1. In your fork: **Settings** → **Secrets and variables** → **Actions** → **Variables** tab → **New repository variable**
+2. Name: `WATCH_REPOS`, Value: everything after `github.com/` in the repo URL — for example:
+   - `https://github.com/NVIDIA/OpenShell` → `NVIDIA/OpenShell`
+   - `https://github.com/kagenti/kagenti-operator` → `kagenti/kagenti-operator`
+   - Multiple repos: `NVIDIA/OpenShell,kagenti/kagenti-operator`
 
-Name: `WATCH_REPOS`, Value: the repo path (e.g. `NVIDIA/OpenShell`). For multiple repos: `NVIDIA/OpenShell,org/another-repo`
-
-> **Important:** This goes under the **Variables** tab, not Secrets.
+> **Important:** This goes under the **Variables** tab, not Secrets — they're on the same page but different tabs. If you add it as a Secret it will silently not work.
 
 #### 3. Enable the workflow
 
@@ -44,7 +48,9 @@ In your fork: **Actions** tab → **I understand my workflows, go ahead and enab
 
 In your fork: Click **Watch** (top right) → **All Activity** → **Apply**
 
-That's it. Every hour GitHub analyzes new issues and creates a notification in your fork's Issues tab. You get an email because `github-actions[bot]` opens it, not you.
+That's it. GitHub runs the monitor every hour, analyzes new and updated issues, and creates a notification in your fork's Issues tab. You get an email because `github-actions[bot]` opens it, not you.
+
+> **Want to change the frequency?** Edit `.github/workflows/monitor.yml` in your fork and change the cron line. For example, `'*/5 * * * *'` for every 5 minutes. GitHub Actions minimum is 5 minutes.
 
 ### Optional settings
 
