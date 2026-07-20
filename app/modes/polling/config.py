@@ -34,9 +34,13 @@ def load_config() -> dict:
         raise ConfigError("WATCH_REPOS must contain at least one repo")
 
     poll_interval = int(os.environ.get("POLL_INTERVAL", "30"))
+    llm_provider = os.environ.get("LLM_PROVIDER", "github").lower().strip()
     llm_endpoint = os.environ.get("LLM_ENDPOINT", "")
-    llm_model = os.environ.get("LLM_MODEL", "gpt-4o")
+    llm_model = os.environ.get("LLM_MODEL", "")
     min_verdict = os.environ.get("MIN_VERDICT", "STRETCH").upper()
+    anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    vertex_project_id = os.environ.get("VERTEX_PROJECT_ID", "")
+    vertex_region = os.environ.get("VERTEX_REGION", "us-east5")
     max_issues_per_repo = int(os.environ.get("MAX_ISSUES_PER_REPO", "20"))
     analysis_delay = int(os.environ.get("ANALYSIS_DELAY", "7"))
 
@@ -53,8 +57,12 @@ def load_config() -> dict:
         "watch_repos": watch_repos,
         "notify_repo": notify_repo,
         "poll_interval": poll_interval,
+        "llm_provider": llm_provider,
         "llm_endpoint": llm_endpoint,
         "llm_model": llm_model,
+        "anthropic_api_key": anthropic_api_key,
+        "vertex_project_id": vertex_project_id,
+        "vertex_region": vertex_region,
         "min_verdict": min_verdict,
         "last_checked": last_checked,
         "max_issues_per_repo": max_issues_per_repo,

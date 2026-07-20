@@ -19,7 +19,7 @@ class TestLoadConfig:
         assert config["monitor_token"] == "ghp_test123"
         assert config["watch_repos"] == ["org/repo"]
         assert config["notify_repo"] == "user/alerts"
-        assert config["llm_model"] == "gpt-4o"
+        assert config["llm_model"] == ""
         assert config["poll_interval"] == 30
         assert config["min_verdict"] == "STRETCH"
 

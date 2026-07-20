@@ -36,7 +36,7 @@ Add this to a repo and every new issue gets assessed automatically. Newcomer-fri
 
 ### Setup
 
-1. Add an `LLM_TOKEN` secret to the target repo (Settings → Secrets → Actions) — an API key for an OpenAI-compatible LLM endpoint (e.g. [GitHub Models](https://github.com/marketplace/models), OpenRouter, or any OpenAI-compatible provider)
+1. Add an `LLM_TOKEN` secret to the target repo (Settings → Secrets → Actions) — your GitHub token works as the API key for [GitHub Models](https://github.com/marketplace/models) (the default provider). See [LLM Providers](#llm-providers) for other options.
 
 2. Create `.github/workflows/newcomer-assess.yml` in the target repo:
 
@@ -67,9 +67,13 @@ That's it. When someone opens an issue, the action runs the LLM assessment and l
 | Input | Required | Default | Description |
 |---|---|---|---|
 | `github-token` | Yes | — | Token with `issues:write` permission |
-| `llm-token` | Yes | — | API key for the LLM endpoint |
-| `llm-endpoint` | No | GitHub Models | OpenAI-compatible API endpoint URL |
-| `llm-model` | No | `gpt-4o` | LLM model to use |
+| `llm-provider` | No | `github` | `github`, `anthropic`, or `vertex` ([details](#llm-providers)) |
+| `llm-token` | Depends | — | API key for the LLM endpoint (required for `github` provider) |
+| `llm-endpoint` | No | GitHub Models | OpenAI-compatible API endpoint URL (`github` provider only) |
+| `llm-model` | No | *(auto)* | LLM model (auto-selected per provider) |
+| `anthropic-api-key` | Depends | — | Anthropic API key (required for `anthropic` provider) |
+| `vertex-project-id` | Depends | — | GCP project ID (required for `vertex` provider) |
+| `vertex-region` | No | `us-east5` | Vertex AI region |
 | `min-verdict` | No | `STRETCH` | Minimum verdict to apply the label |
 | `repo-profile` | No | — | Repo profile for calibrated assessment (e.g. `openshell`) |
 
@@ -229,9 +233,127 @@ pip install -r requirements-dev.txt
 python -m pytest tests/ -v
 ```
 
+---
+
+## LLM Providers
+
+The monitor works with three LLM providers. **GitHub Models is the default** — if you forked this repo and followed Quick Setup, you're already using it and don't need to change anything.
+
+| Provider | What it is | Auth | Best for |
+|---|---|---|---|
+| `github` (default) | [GitHub Models](https://github.com/marketplace/models) — free, OpenAI-compatible | Your GitHub token (already set up) | Most users |
+| `anthropic` | [Anthropic API](https://console.anthropic.com/) — Claude directly | Anthropic API key | Users who prefer Claude |
+| `vertex` | Claude via [Google Vertex AI](https://cloud.google.com/vertex-ai) | Google Cloud login (no API key) | Teams with a Google Cloud project |
+
+### Switching providers
+
+Set `LLM_PROVIDER` to change which LLM the monitor uses. The model is auto-selected per provider — you only need to set `LLM_MODEL` if you want to override it.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `LLM_PROVIDER` | `github` | Which provider to use: `github`, `anthropic`, or `vertex` |
+| `LLM_MODEL` | *(auto)* | `gpt-4o` for github, `claude-sonnet-4-6` for anthropic/vertex |
+
+### Provider: `github` (default)
+
+No extra setup. Your GitHub token works as the API key for [GitHub Models](https://github.com/marketplace/models).
+
+Want to use a different OpenAI-compatible endpoint (like [OpenRouter](https://openrouter.ai/))? Set `LLM_ENDPOINT`:
+
+```
+LLM_ENDPOINT=https://openrouter.ai/api/v1
+```
+
+### Provider: `anthropic`
+
+Uses Claude via the Anthropic API.
+
+**What you need:** An API key from [console.anthropic.com](https://console.anthropic.com/).
+
+**Polling mode (Quick Setup):** Add these as repository **Variables** (Settings → Secrets and variables → Actions → Variables tab):
+
+| Variable | Value |
+|---|---|
+| `LLM_PROVIDER` | `anthropic` |
+
+And add this as a repository **Secret**:
+
+| Secret | Value |
+|---|---|
+| `ANTHROPIC_API_KEY` | Your Anthropic API key (`sk-ant-...`) |
+
+**Polling mode (self-hosted):**
+
+```bash
+pip install 'anthropic[vertex]>=0.39.0'
+
+export LLM_PROVIDER=anthropic
+export ANTHROPIC_API_KEY=sk-ant-...
+# plus your existing MONITOR_TOKEN, WATCH_REPOS, etc.
+python -m app.main
+```
+
+**Action mode:**
+
+```yaml
+- uses: gracesmith6504/github-issue-monitor@main
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    llm-provider: anthropic
+    anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+### Provider: `vertex`
+
+Uses Claude via Google Vertex AI. Authenticates with your Google Cloud login — no API key needed.
+
+**What you need:** A Google Cloud project with Vertex AI enabled, and `gcloud` installed.
+
+**Polling mode (self-hosted):**
+
+```bash
+pip install 'anthropic[vertex]>=0.39.0'
+gcloud auth application-default login
+
+export LLM_PROVIDER=vertex
+export VERTEX_PROJECT_ID=your-gcp-project-id
+export VERTEX_REGION=us-east5
+# plus your existing MONITOR_TOKEN, WATCH_REPOS, etc.
+python -m app.main
+```
+
+**Polling mode (Quick Setup):** Add these as repository **Variables**:
+
+| Variable | Value |
+|---|---|
+| `LLM_PROVIDER` | `vertex` |
+| `VERTEX_PROJECT_ID` | Your GCP project ID |
+| `VERTEX_REGION` | `us-east5` (or your region) |
+
+> **Note:** Vertex via GitHub Actions requires [Workload Identity Federation](https://github.com/google-github-actions/auth) to authenticate with Google Cloud. This is more advanced — if you're not sure, use the `anthropic` provider with an API key instead.
+
+**Action mode:**
+
+```yaml
+- uses: gracesmith6504/github-issue-monitor@main
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    llm-provider: vertex
+    vertex-project-id: your-gcp-project-id
+    vertex-region: us-east5
+```
+
+**Docker build with Vertex support:**
+
+```bash
+podman build --build-arg LLM_PROVIDER=vertex -t issue-monitor .
+```
+
+---
+
 ## How It Works
 
-1. **Assessment engine** — sends the issue title, body, labels, and comments to an LLM (any OpenAI-compatible endpoint — GitHub Models, OpenRouter, etc.) which rates it on three axes: Starting Point (how clear is the path to the fix?), Scope (how contained?), and Familiarity (how much knowledge beyond what Claude Code can figure out?). Scores are 1-5 each, summed for the verdict.
+1. **Assessment engine** — sends the issue title, body, labels, and comments to a [configurable LLM provider](#llm-providers) (GitHub Models, Anthropic, or Google Vertex AI) which rates it on three axes: Starting Point (how clear is the path to the fix?), Scope (how contained?), and Familiarity (how much knowledge beyond what Claude Code can figure out?). Scores are 1-5 each, summed for the verdict.
 2. **Repo profiles** — optional YAML profiles (`profiles/`) provide repo-specific calibration: architecture guides, domain complexity notes, and scored examples the LLM uses as anchors. Without a profile, the base prompt still produces reasonable results.
 3. **Label signals** — `good first issue` and similar labels are passed as hints to the LLM for stronger signal
 4. **Claimed detection** — deterministic checks for assignment, linked PRs, fork activity, and comment patterns ("I'll work on this"), plus an LLM second pass for unusual wordings
@@ -240,7 +362,7 @@ python -m pytest tests/ -v
 
 ## Costs
 
-**Free.** GitHub API and GitHub Actions are free for public repos. The LLM endpoint is configurable — GitHub Models and OpenRouter both offer free tiers. If you watch many busy repos you may hit rate limits, but for a handful of repos it's not an issue.
+**Free by default.** GitHub API and GitHub Actions are free for public repos. The default LLM provider (GitHub Models) is free. If you [switch to Anthropic or Vertex AI](#llm-providers), those providers have their own pricing.
 
 ## Troubleshooting
 
@@ -250,6 +372,7 @@ python -m pytest tests/ -v
 | `ERROR: WATCH_REPOS environment variable is required` | You added `WATCH_REPOS` as a Secret instead of a Variable — go back and add it under the **Variables** tab |
 | `Failed to create notification: 403` | GitHub App isn't installed on the notification repo (Advanced Setup only) |
 | `LLM analysis failed` | Your LLM endpoint might be down or rate-limited — wait and retry |
+| `No module named 'anthropic'` | You set `LLM_PROVIDER` to `anthropic` or `vertex` but didn't install the SDK — run `pip install 'anthropic[vertex]>=0.39.0'` |
 | Not getting emails | Watch the repo with **All Activity** (not Custom). Check the notification issue shows `github-actions[bot]` as the author, not your username. |
 | Actions workflow not running | Go to Actions tab and enable it |
 | No notifications appearing | The watched repo might just not have had new issues — try adding a busier repo to WATCH_REPOS |

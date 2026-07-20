@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone
 
 from app.core.assessment import assess_issue
-from app.core.llm import LLMClient
+from app.core.llm import create_llm_client, resolve_model
 from app.core.profiles import find_profile_for_repo
 from app.core.prompt import build_system_prompt
 from app.core.verdict import meets_threshold
@@ -35,7 +35,7 @@ def run_once(config, poller, llm_client):
                 time.sleep(config["analysis_delay"])
             logger.info(f"Analyzing: {issue['repo']} #{issue['number']} — {issue['title']}")
 
-            analysis = assess_issue(issue, llm_client, config["llm_model"],
+            analysis = assess_issue(issue, llm_client, config["_resolved_model"],
                                     system_prompt=system_prompt, profile=profile)
             if not analysis:
                 logger.warning(f"Skipping {issue['repo']} #{issue['number']} — analysis failed")
@@ -64,15 +64,21 @@ def main():
     logger.info("GitHub Issue Monitor starting up")
     logger.info(f"Watching repos: {', '.join(config['watch_repos'])}")
     logger.info(f"Notifications go to: {config['notify_repo']}")
-    logger.info(f"LLM model: {config['llm_model']}")
+    provider = config["llm_provider"]
+    config["_resolved_model"] = resolve_model(provider, config["llm_model"])
+    logger.info(f"LLM provider: {provider}")
+    logger.info(f"LLM model: {config['_resolved_model']}")
     logger.info(f"Min verdict: {config['min_verdict']}")
     logger.info(f"Checking issues since: {config['last_checked']}")
 
     poller = Poller(config["monitor_token"])
-    client_kwargs = {"api_key": config["llm_token"]}
-    if config.get("llm_endpoint"):
-        client_kwargs["base_url"] = config["llm_endpoint"]
-    llm_client = LLMClient(**client_kwargs)
+    llm_client = create_llm_client(
+        provider=provider,
+        api_key=config.get("anthropic_api_key") if provider == "anthropic" else config.get("llm_token") or config["monitor_token"],
+        base_url=config.get("llm_endpoint") or None,
+        project_id=config.get("vertex_project_id") or None,
+        region=config.get("vertex_region", "us-east5"),
+    )
 
     if os.environ.get("RUN_ONCE") == "true":
         logger.info("Running single pass (GitHub Actions mode)")

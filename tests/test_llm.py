@@ -1,98 +1,183 @@
 import json
 from unittest.mock import patch, MagicMock
+
 import pytest
 
-from app.core.llm import LLMClient
+from app.core.llm import (
+    GitHubModelsClient,
+    LLMClient,
+    _strip_markdown_fences,
+    create_llm_client,
+    resolve_model,
+    DEFAULT_MODELS,
+)
 
 
-def _mock_response(content_dict=None, content_str=None, null_content=False, empty_choices=False):
-    response = MagicMock()
-    if empty_choices:
-        response.choices = []
-        return response
-    choice = MagicMock()
-    if null_content:
-        choice.message.content = None
-    elif content_str is not None:
-        choice.message.content = content_str
-    elif content_dict is not None:
-        choice.message.content = json.dumps(content_dict)
-    else:
-        choice.message.content = json.dumps({"result": "ok"})
-    response.choices = [choice]
-    return response
+class TestStripMarkdownFences:
+    def test_no_fences(self):
+        assert _strip_markdown_fences('{"a": 1}') == '{"a": 1}'
+
+    def test_json_fences(self):
+        text = '```json\n{"a": 1}\n```'
+        assert _strip_markdown_fences(text) == '{"a": 1}'
+
+    def test_plain_fences(self):
+        text = '```\n{"a": 1}\n```'
+        assert _strip_markdown_fences(text) == '{"a": 1}'
 
 
-class TestLLMClientAssess:
-    @patch("app.core.llm.OpenAI")
-    def test_valid_json_returns_parsed_dict(self, mock_openai_cls):
-        mock_client = MagicMock()
-        mock_openai_cls.return_value = mock_client
-        mock_client.chat.completions.create.return_value = _mock_response({"score": 5})
+class TestGitHubModelsClient:
+    def test_successful_json_response(self):
+        mock_openai = MagicMock()
+        mock_openai.chat.completions.create.return_value.choices = [
+            MagicMock(message=MagicMock(content='{"verdict": "GO FOR IT"}'))
+        ]
+        client = GitHubModelsClient.__new__(GitHubModelsClient)
+        client._client = mock_openai
 
-        client = LLMClient(api_key="test-key")
         result = client.assess("system", "user", "gpt-4o")
-        assert result == {"score": 5}
+        assert result == {"verdict": "GO FOR IT"}
 
-    @patch("app.core.llm.OpenAI")
-    def test_null_content_returns_none(self, mock_openai_cls):
-        mock_client = MagicMock()
-        mock_openai_cls.return_value = mock_client
-        mock_client.chat.completions.create.return_value = _mock_response(null_content=True)
+    def test_returns_none_on_json_parse_error(self):
+        mock_openai = MagicMock()
+        mock_openai.chat.completions.create.return_value.choices = [
+            MagicMock(message=MagicMock(content="not json"))
+        ]
+        client = GitHubModelsClient.__new__(GitHubModelsClient)
+        client._client = mock_openai
 
-        client = LLMClient(api_key="test-key")
-        result = client.assess("system", "user", "gpt-4o")
-        assert result is None
-
-    @patch("app.core.llm.OpenAI")
-    def test_empty_choices_returns_none(self, mock_openai_cls):
-        mock_client = MagicMock()
-        mock_openai_cls.return_value = mock_client
-        mock_client.chat.completions.create.return_value = _mock_response(empty_choices=True)
-
-        client = LLMClient(api_key="test-key")
         result = client.assess("system", "user", "gpt-4o")
         assert result is None
 
-    @patch("app.core.llm.OpenAI")
-    def test_invalid_json_returns_none(self, mock_openai_cls):
-        mock_client = MagicMock()
-        mock_openai_cls.return_value = mock_client
-        mock_client.chat.completions.create.return_value = _mock_response(content_str="not json {{{")
+    def test_retries_on_transient_error(self):
+        mock_openai = MagicMock()
+        mock_openai.chat.completions.create.side_effect = [
+            RuntimeError("rate limit"),
+            MagicMock(choices=[MagicMock(message=MagicMock(content='{"ok": true}'))]),
+        ]
+        client = GitHubModelsClient.__new__(GitHubModelsClient)
+        client._client = mock_openai
 
-        client = LLMClient(api_key="test-key")
-        result = client.assess("system", "user", "gpt-4o")
+        with patch("app.core.llm.time.sleep"):
+            result = client.assess("system", "user", "gpt-4o")
+        assert result == {"ok": True}
+
+    def test_returns_none_after_max_retries(self):
+        mock_openai = MagicMock()
+        mock_openai.chat.completions.create.side_effect = RuntimeError("down")
+        client = GitHubModelsClient.__new__(GitHubModelsClient)
+        client._client = mock_openai
+
+        with patch("app.core.llm.time.sleep"):
+            result = client.assess("system", "user", "gpt-4o")
         assert result is None
 
-    @patch("app.core.llm.time")
-    @patch("app.core.llm.OpenAI")
-    def test_transient_error_retries_then_succeeds(self, mock_openai_cls, mock_time):
-        mock_client = MagicMock()
-        mock_openai_cls.return_value = mock_client
-        mock_client.chat.completions.create.side_effect = [
-            ConnectionError("timeout"),
-            _mock_response({"retried": True}),
+
+class TestAnthropicClient:
+    def _make_client(self):
+        mock_anthropic_module = MagicMock()
+        mock_sdk_client = MagicMock()
+        mock_anthropic_module.Anthropic.return_value = mock_sdk_client
+
+        with patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
+            from app.core.llm import AnthropicClient
+            client = AnthropicClient(api_key="sk-test")
+
+        return client, mock_sdk_client
+
+    def test_successful_json_response(self):
+        client, mock_sdk = self._make_client()
+        mock_sdk.messages.create.return_value.content = [
+            MagicMock(text='{"verdict": "STRETCH"}')
         ]
 
-        client = LLMClient(api_key="test-key")
-        result = client.assess("system", "user", "gpt-4o")
-        assert result == {"retried": True}
-        assert mock_client.chat.completions.create.call_count == 2
-        mock_time.sleep.assert_called_once_with(5)
+        result = client.assess("system", "user", "claude-sonnet-4-6")
+        assert result == {"verdict": "STRETCH"}
 
-    @patch("app.core.llm.time")
-    @patch("app.core.llm.OpenAI")
-    def test_all_retries_exhausted_returns_none(self, mock_openai_cls, mock_time):
-        mock_client = MagicMock()
-        mock_openai_cls.return_value = mock_client
-        mock_client.chat.completions.create.side_effect = ConnectionError("timeout")
+        call_kwargs = mock_sdk.messages.create.call_args.kwargs
+        assert call_kwargs["system"] == "system"
+        assert call_kwargs["max_tokens"] == 4096
 
-        client = LLMClient(api_key="test-key")
-        result = client.assess("system", "user", "gpt-4o")
-        assert result is None
-        assert mock_client.chat.completions.create.call_count == 3
+    def test_strips_markdown_fences(self):
+        client, mock_sdk = self._make_client()
+        mock_sdk.messages.create.return_value.content = [
+            MagicMock(text='```json\n{"verdict": "GO FOR IT"}\n```')
+        ]
 
-    @patch("app.core.llm.OpenAI")
-    def test_custom_base_url(self, mock_openai_cls):
-        LLMClient(api_key="test-key", base_url="https://custom.api/v1")
-        mock_openai_cls.assert_called_once_with(base_url="https://custom.api/v1", api_key="test-key")
+        result = client.assess("system", "user", "claude-sonnet-4-6")
+        assert result == {"verdict": "GO FOR IT"}
+
+
+class TestVertexClient:
+    def _make_client(self):
+        mock_anthropic_module = MagicMock()
+        mock_sdk_client = MagicMock()
+        mock_anthropic_module.AnthropicVertex.return_value = mock_sdk_client
+
+        with patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
+            from app.core.llm import VertexClient
+            client = VertexClient(project_id="my-project", region="us-east5")
+
+        return client, mock_sdk_client
+
+    def test_successful_json_response(self):
+        client, mock_sdk = self._make_client()
+        mock_sdk.messages.create.return_value.content = [
+            MagicMock(text='{"verdict": "JUMP ON IT"}')
+        ]
+
+        result = client.assess("system", "user", "claude-sonnet-4-6")
+        assert result == {"verdict": "JUMP ON IT"}
+
+
+class TestResolveModel:
+    def test_explicit_model_wins(self):
+        assert resolve_model("github", "gpt-4o-mini") == "gpt-4o-mini"
+
+    def test_github_default(self):
+        assert resolve_model("github", "") == "gpt-4o"
+        assert resolve_model("github", None) == "gpt-4o"
+
+    def test_anthropic_default(self):
+        assert resolve_model("anthropic", "") == "claude-sonnet-4-6"
+
+    def test_vertex_default(self):
+        assert resolve_model("vertex", "") == "claude-sonnet-4-6"
+
+    def test_unknown_provider_falls_back(self):
+        assert resolve_model("unknown", "") == DEFAULT_MODELS["github"]
+
+
+class TestCreateLlmClient:
+    def test_github_default(self):
+        client = create_llm_client(provider="github", api_key="test")
+        assert isinstance(client, GitHubModelsClient)
+
+    def test_github_with_custom_base_url(self):
+        client = create_llm_client(
+            provider="github", api_key="test", base_url="https://custom.api/v1"
+        )
+        assert isinstance(client, GitHubModelsClient)
+
+    def test_unknown_provider_raises(self):
+        with pytest.raises(ValueError, match="Unknown LLM_PROVIDER"):
+            create_llm_client(provider="ollama", api_key="test")
+
+    def test_missing_api_key_for_github_raises(self):
+        with pytest.raises(ValueError, match="api_key"):
+            create_llm_client(provider="github")
+
+    def test_missing_api_key_for_anthropic_raises(self):
+        with pytest.raises(ValueError, match="ANTHROPIC_API_KEY"):
+            create_llm_client(provider="anthropic")
+
+    def test_missing_project_id_for_vertex_raises(self):
+        with pytest.raises(ValueError, match="VERTEX_PROJECT_ID"):
+            create_llm_client(provider="vertex")
+
+    def test_case_insensitive_provider(self):
+        client = create_llm_client(provider="GitHub", api_key="test")
+        assert isinstance(client, GitHubModelsClient)
+
+    def test_backward_compat_alias(self):
+        assert LLMClient is GitHubModelsClient

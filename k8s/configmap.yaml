@@ -7,4 +7,5 @@ data:
   WATCH_REPOS: "NVIDIA/OpenShell"
   NOTIFY_REPO: "gracesmith6504/github-issue-monitor"
   POLL_INTERVAL: "30"
+  LLM_PROVIDER: "github"
   LLM_MODEL: "gpt-4o"

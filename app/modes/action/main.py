@@ -6,7 +6,7 @@ import sys
 import requests
 
 from app.core.assessment import assess_issue
-from app.core.llm import LLMClient
+from app.core.llm import create_llm_client, resolve_model
 from app.core.profiles import load_profile
 from app.core.prompt import build_system_prompt
 from app.core.verdict import meets_threshold
@@ -76,18 +76,24 @@ def _set_output(key, value):
 
 
 def main():
-    llm_token = os.environ.get("INPUT_LLM_TOKEN") or os.environ.get("INPUT_LLM-TOKEN")
-    if not llm_token:
-        logger.error("llm-token input is required")
-        sys.exit(1)
-
     github_token = os.environ.get("INPUT_GITHUB_TOKEN") or os.environ.get("INPUT_GITHUB-TOKEN")
     if not github_token:
         logger.error("github-token input is required")
         sys.exit(1)
 
+    llm_provider = (os.environ.get("INPUT_LLM_PROVIDER") or os.environ.get("INPUT_LLM-PROVIDER") or "github").lower().strip()
+    llm_token = os.environ.get("INPUT_LLM_TOKEN") or os.environ.get("INPUT_LLM-TOKEN") or ""
     llm_endpoint = os.environ.get("INPUT_LLM_ENDPOINT") or os.environ.get("INPUT_LLM-ENDPOINT") or ""
-    model = os.environ.get("INPUT_LLM_MODEL") or os.environ.get("INPUT_LLM-MODEL") or "gpt-4o"
+    model_override = os.environ.get("INPUT_LLM_MODEL") or os.environ.get("INPUT_LLM-MODEL") or ""
+    anthropic_api_key = os.environ.get("INPUT_ANTHROPIC_API_KEY") or os.environ.get("INPUT_ANTHROPIC-API-KEY") or ""
+    vertex_project_id = os.environ.get("INPUT_VERTEX_PROJECT_ID") or os.environ.get("INPUT_VERTEX-PROJECT-ID") or ""
+    vertex_region = os.environ.get("INPUT_VERTEX_REGION") or os.environ.get("INPUT_VERTEX-REGION") or "us-east5"
+
+    if llm_provider == "github" and not llm_token:
+        logger.error("llm-token input is required when llm-provider is 'github' (the default)")
+        sys.exit(1)
+
+    model = resolve_model(llm_provider, model_override)
     min_verdict = (os.environ.get("INPUT_MIN_VERDICT") or os.environ.get("INPUT_MIN-VERDICT") or "STRETCH").upper()
 
     profile_name = os.environ.get("INPUT_REPO_PROFILE") or os.environ.get("INPUT_REPO-PROFILE") or ""
@@ -125,10 +131,23 @@ def main():
 
     logger.info(f"Assessing: {issue_dict['repo']} #{issue_dict['number']} — {issue_dict['title']}")
 
-    client_kwargs = {"api_key": llm_token}
-    if llm_endpoint:
-        client_kwargs["base_url"] = llm_endpoint
-    llm_client = LLMClient(**client_kwargs)
+    if llm_provider == "anthropic":
+        api_key = anthropic_api_key
+        if not api_key:
+            logger.error("anthropic-api-key input is required when llm-provider is 'anthropic'")
+            sys.exit(1)
+    elif llm_provider == "github":
+        api_key = llm_token
+    else:
+        api_key = None
+
+    llm_client = create_llm_client(
+        provider=llm_provider,
+        api_key=api_key,
+        base_url=llm_endpoint or None,
+        project_id=vertex_project_id or None,
+        region=vertex_region,
+    )
     analysis = assess_issue(issue_dict, llm_client, model, system_prompt=system_prompt, profile=profile)
 
     if not analysis:

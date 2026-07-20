@@ -5,17 +5,34 @@ inputs:
   github-token:
     description: 'GitHub token with issues:write permission'
     required: true
+  llm-provider:
+    description: 'LLM provider: github (default, OpenAI-compatible), anthropic (Anthropic API), or vertex (Google Vertex AI)'
+    required: false
+    default: 'github'
   llm-token:
-    description: 'API key for GitHub Models LLM'
-    required: true
+    description: 'API key for the LLM endpoint (required for github provider, the default)'
+    required: false
+    default: ''
   llm-endpoint:
-    description: 'OpenAI-compatible API endpoint URL (default: GitHub Models)'
+    description: 'OpenAI-compatible API endpoint URL (github provider only, default: GitHub Models)'
     required: false
     default: 'https://models.github.ai/inference'
   llm-model:
-    description: 'LLM model to use for assessment'
+    description: 'LLM model (default: auto per provider — gpt-4o for github, claude-sonnet-4-6 for anthropic/vertex)'
     required: false
-    default: 'gpt-4o'
+    default: ''
+  anthropic-api-key:
+    description: 'Anthropic API key (required when llm-provider is anthropic)'
+    required: false
+    default: ''
+  vertex-project-id:
+    description: 'Google Cloud project ID (required when llm-provider is vertex)'
+    required: false
+    default: ''
+  vertex-region:
+    description: 'Google Cloud region for Vertex AI (default: us-east5)'
+    required: false
+    default: 'us-east5'
   min-verdict:
     description: 'Minimum verdict to apply a label (JUMP ON IT, GO FOR IT, STRETCH, LONG SHOT, NOT YET)'
     required: false
@@ -53,16 +70,24 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: pip install -r ${{ github.action_path }}/requirements.txt
+      run: |
+        pip install -r ${{ github.action_path }}/requirements.txt
+        if [ "${{ inputs.llm-provider }}" = "anthropic" ] || [ "${{ inputs.llm-provider }}" = "vertex" ]; then
+          pip install 'anthropic[vertex]>=0.39.0'
+        fi
 
     - name: Assess issue
       id: assess
       shell: bash
       env:
         INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_LLM_PROVIDER: ${{ inputs.llm-provider }}
         INPUT_LLM_TOKEN: ${{ inputs.llm-token }}
         INPUT_LLM_ENDPOINT: ${{ inputs.llm-endpoint }}
         INPUT_LLM_MODEL: ${{ inputs.llm-model }}
+        INPUT_ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        INPUT_VERTEX_PROJECT_ID: ${{ inputs.vertex-project-id }}
+        INPUT_VERTEX_REGION: ${{ inputs.vertex-region }}
         INPUT_MIN_VERDICT: ${{ inputs.min-verdict }}
         INPUT_REPO_PROFILE: ${{ inputs.repo-profile }}
         INPUT_ISSUE_NUMBER: ${{ inputs.issue-number }}

@@ -21,7 +21,17 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          if [ "${{ vars.LLM_PROVIDER }}" = "anthropic" ] || [ "${{ vars.LLM_PROVIDER }}" = "vertex" ]; then
+            pip install 'anthropic[vertex]>=0.39.0'
+          fi
+
+      - name: Authenticate to Google Cloud
+        if: vars.LLM_PROVIDER == 'vertex'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Compute LAST_CHECKED from previous run
         env:
@@ -44,7 +54,11 @@ jobs:
           WATCH_REPOS: ${{ vars.WATCH_REPOS }}
           LAST_CHECKED: ${{ env.LAST_CHECKED }}
           NOTIFY_REPO: ${{ github.repository }}
-          LLM_MODEL: ${{ vars.LLM_MODEL || 'gpt-4o' }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'github' }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VERTEX_PROJECT_ID: ${{ vars.VERTEX_PROJECT_ID }}
+          VERTEX_REGION: ${{ vars.VERTEX_REGION }}
           MIN_VERDICT: ${{ vars.MIN_VERDICT || 'STRETCH' }}
           RUN_ONCE: "true"
         run: python -m app.main
