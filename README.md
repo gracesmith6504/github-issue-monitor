@@ -183,6 +183,11 @@ export GITHUB_APP_ID="your_app_id"
 export GITHUB_APP_INSTALLATION_ID="your_installation_id"
 export GITHUB_APP_PRIVATE_KEY_PATH="/path/to/your-key.pem"
 
+# Optional: set a separate LLM API key (defaults to MONITOR_TOKEN, which
+# works for GitHub Models but not for OpenAI, OpenRouter, etc.)
+# export LLM_TOKEN="sk-your_llm_key"
+# export LLM_ENDPOINT="https://api.openai.com/v1"
+
 python -m app.main
 ```
 
@@ -210,6 +215,19 @@ oc run issue-monitor \
 ```
 
 ---
+
+## Architecture
+
+![Architecture diagram](docs/architecture.png)
+
+## Development
+
+```bash
+git clone https://github.com/YOUR-USERNAME/github-issue-monitor.git
+cd github-issue-monitor
+pip install -r requirements-dev.txt
+python -m pytest tests/ -v
+```
 
 ## How It Works
 
