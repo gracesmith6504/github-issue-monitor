@@ -18,7 +18,7 @@ By default, only STRETCH or above get notified. You can change this with `MIN_VE
 
 ## Polling Mode — Get emailed when good issues appear
 
-Fork this repo and it watches repos for new and reclaimed issues, analyzes them, and emails you the ones worth working on — even when your laptop is off.
+Fork this repo and it watches repos for new and reclaimed issues, analyses them, and emails you the ones worth working on — even when your laptop is off.
 
 It also detects **reclaimed issues** — previously claimed but then abandoned (unassigned, PR closed without merge, etc.). These show up with `[RECLAIMED]` in the subject line.
 
@@ -48,7 +48,7 @@ In your fork: **Actions** tab → **I understand my workflows, go ahead and enab
 
 In your fork: Click **Watch** (top right) → **All Activity** → **Apply**
 
-That's it. GitHub runs the monitor every hour, analyzes new and updated issues, and creates a notification in your fork's Issues tab. You get an email because `github-actions[bot]` opens it, not you.
+That's it. GitHub runs the monitor every hour, analyses new and updated issues, and creates a notification in your fork's Issues tab. You get an email because `github-actions[bot]` opens it, not you.
 
 > **Want to change the frequency?** Edit `.github/workflows/monitor.yml` in your fork and change the cron line. For example, `'*/5 * * * *'` for every 5 minutes. GitHub Actions minimum is 5 minutes.
 
@@ -111,7 +111,7 @@ jobs:
 
 ## LLM Providers
 
-The monitor supports three LLM providers. **GitHub Models is the default** — no extra setup needed.
+You can configure which LLM the monitor uses. **GitHub Models is the default** — no extra setup needed.
 
 | Provider | What it is | Auth |
 |---|---|---|
