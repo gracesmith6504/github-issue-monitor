@@ -50,10 +50,10 @@ jobs:
       - name: Run monitor (single pass)
         env:
           MONITOR_TOKEN: ${{ secrets.MONITOR_TOKEN || secrets.GITHUB_TOKEN }}
-          NOTIFY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NOTIFY_TOKEN: ${{ secrets.MONITOR_TOKEN || secrets.GITHUB_TOKEN }}
           WATCH_REPOS: ${{ vars.WATCH_REPOS }}
           LAST_CHECKED: ${{ env.LAST_CHECKED }}
-          NOTIFY_REPO: ${{ github.repository }}
+          NOTIFY_REPO: ${{ vars.NOTIFY_REPO || github.repository }}
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'github' }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
