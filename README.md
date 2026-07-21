@@ -222,6 +222,8 @@ HTTP Request: POST https://us-east5-aiplatform.googleapis.com/...  "HTTP/1.1 200
 
 ## How It Works
 
+![Architecture diagram](docs/architecture.png)
+
 1. **Assessment engine** — sends the issue title, body, labels, and comments to a [configurable LLM](#llm-providers) which scores it on three axes (starting point, scope, familiarity). Scores are 1-5 each, summed for the verdict.
 2. **Repo profiles** — optional YAML configs in `profiles/` inject repo-specific calibration into the LLM prompt.
 3. **Claimed detection** — checks for assignment, linked PRs, fork activity, and comment patterns ("I'll work on this") to skip issues someone is already working on.
