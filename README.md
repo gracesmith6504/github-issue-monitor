@@ -137,17 +137,86 @@ No extra setup. Your GitHub token works as the API key.
 
 ### Provider: `anthropic`
 
-Add `LLM_PROVIDER=anthropic` as a repository **Variable** and `ANTHROPIC_API_KEY` as a repository **Secret**.
+1. Get an API key from [console.anthropic.com](https://console.anthropic.com/)
+2. In your fork: **Settings** → **Secrets and variables** → **Actions**
+   - **Variables** tab → add `LLM_PROVIDER` = `anthropic`
+   - **Secrets** tab → add `ANTHROPIC_API_KEY` = your key
 
 ### Provider: `vertex`
 
-Uses Claude via Google Vertex AI. Authenticates with a Google Cloud service account — no API key needed. You need access to a GCP project with Vertex AI enabled.
+Uses Claude via Google Vertex AI. Authenticates with a Google Cloud service account — no Anthropic API key needed. You need access to a GCP project with the Vertex AI API enabled.
 
-**Setup:** Ask Claude Code:
+#### Step 1: Create a service account
 
-> Set up Vertex AI as the LLM provider for my github-issue-monitor fork. I need a GCP service account key, GitHub secret, and repo variables.
+```bash
+gcloud iam service-accounts create issue-monitor \
+  --display-name="Issue Monitor" \
+  --project="YOUR-GCP-PROJECT-ID"
+```
 
-It will walk you through everything.
+#### Step 2: Grant it Vertex AI access
+
+```bash
+gcloud projects add-iam-policy-binding YOUR-GCP-PROJECT-ID \
+  --member="serviceAccount:issue-monitor@YOUR-GCP-PROJECT-ID.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.user" \
+  --condition=None --quiet
+```
+
+#### Step 3: Create a key
+
+```bash
+gcloud iam service-accounts keys create sa-key.json \
+  --iam-account="issue-monitor@YOUR-GCP-PROJECT-ID.iam.gserviceaccount.com" \
+  --project="YOUR-GCP-PROJECT-ID"
+```
+
+> **Note:** Some GCP organizations block service account key creation. If you get a `FAILED_PRECONDITION` error, ask your GCP admin about the `iam.disableServiceAccountKeyCreation` org policy, or use Workload Identity Federation instead.
+
+#### Step 4: Set GitHub secrets and variables
+
+In your fork: **Settings** → **Secrets and variables** → **Actions**
+
+**Variables** tab — add these three:
+
+| Variable | Value |
+|---|---|
+| `LLM_PROVIDER` | `vertex` |
+| `VERTEX_PROJECT_ID` | Your GCP project ID (e.g. `my-gcp-project`) |
+| `VERTEX_REGION` | `us-east5` (or your preferred [Vertex AI region](https://cloud.google.com/vertex-ai/docs/general/locations)) |
+
+**Secrets** tab — add one:
+
+| Secret | Value |
+|---|---|
+| `GCP_SA_KEY` | Paste the **entire contents** of `sa-key.json` |
+
+#### Step 5: Clean up the key file
+
+```bash
+rm sa-key.json
+```
+
+The key is now stored in GitHub Secrets — delete the local copy.
+
+#### Verify it works
+
+Go to **Actions** → **Issue Monitor** → **Run workflow** → check the logs. You should see:
+
+```
+LLM provider: vertex
+LLM model: claude-sonnet-4-6
+HTTP Request: POST https://us-east5-aiplatform.googleapis.com/...  "HTTP/1.1 200 OK"
+```
+
+#### Troubleshooting Vertex AI
+
+| Problem | Fix |
+|---|---|
+| `No module named 'anthropic'` | The workflow installs it automatically — check that the conditional install step ran |
+| `403 Permission denied on Vertex AI` | The service account needs `roles/aiplatform.user` on the project (Step 2) |
+| `FAILED_PRECONDITION` creating keys | Your GCP org blocks SA key creation — ask your admin or use Workload Identity Federation |
+| `Could not automatically determine credentials` | The `GCP_SA_KEY` secret is missing or malformed — paste the full JSON contents |
 
 ---
 
